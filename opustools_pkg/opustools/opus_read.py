@@ -7,13 +7,16 @@ from .util import file_open
 from .formatting import *
 from .opus_file_handler import OpusFileHandler
 
+
 def skip_regex_type(n, N):
     "Select function to skip document names"
 
     def get_re(doc_name):
         return not re.search(n, doc_name)
+
     def skip_re(doc_name):
         return re.search(N, doc_name)
+
     def nothing(doc_name):
         return False
 
@@ -26,19 +29,42 @@ def skip_regex_type(n, N):
 
 class OpusRead:
 
-    def __init__(self, directory=None, source=None, target=None,
-            release='latest', preprocess='xml', maximum=-1, src_range='all',
-            tgt_range='all', attribute=None, threshold=None,
-            leave_non_alignments_out=False, write=None, write_mode='normal',
+    def __init__(
+            self,
+            directory=None,
+            source=None,
+            target=None,
+            release='latest',
+            preprocess='xml',
+            maximum=-1,
+            src_range='all',
+            tgt_range='all',
+            attribute=None,
+            threshold=None,
+            leave_non_alignments_out=False,
+            write=None,
+            write_mode='normal',
             print_file_names=False,
-            root_directory='/projappl/nlpl/data/OPUS', alignment_file=-1,
-            source_zip=None, target_zip=None, change_moses_delimiter='\t',
-            print_annotations=False, source_annotations=['pos', 'lem'],
+            root_directory='/projappl/nlpl/data/OPUS',
+            alignment_file=-1,
+            source_zip=None,
+            target_zip=None,
+            change_moses_delimiter='\t',
+            print_annotations=False,
+            source_annotations=['pos', 'lem'],
             target_annotations=['pos', 'lem'],
             change_annotation_delimiter='|',
-            src_cld2=None, trg_cld2=None, src_langid=None, trg_langid=None,
-            write_ids=None, suppress_prompts=False, download_dir='.',
-            preserve_inline_tags=False, n=None, N=None, verbose=False):
+            src_cld2=None,
+            trg_cld2=None,
+            src_langid=None,
+            trg_langid=None,
+            write_ids=None,
+            suppress_prompts=False,
+            download_dir='.',
+            preserve_inline_tags=False,
+            n=None,
+            N=None,
+            verbose=False):
         """Read xces alignment files and xml sentence files and output in
         desired format.
 
@@ -113,29 +139,49 @@ class OpusRead:
 
         lang_filters = [src_cld2, src_langid, trg_cld2, trg_langid]
 
-        default_alignment = os.path.join(root_directory, directory, release,
-                'xml', self.fromto[0]+'-'+self.fromto[1]+'.xml.gz')
+        default_alignment = os.path.join(
+            root_directory,
+            directory,
+            release,
+            'xml',
+            self.fromto[0] + '-' + self.fromto[1] + '.xml.gz'
+        )
         if alignment_file == -1:
             self.alignment = default_alignment
         else:
             self.alignment = alignment_file
 
         if not source_zip:
-            dl_src_zip = os.path.join(download_dir, directory+'_'+release+'_'+
-                preprocess+'_'+self.fromto[0]+'.zip')
+            dl_src_zip = os.path.join(
+                download_dir,
+                directory + '_' + release + '_' + preprocess + '_' + self.fromto[0] + '.zip'
+            )
             if os.path.isfile(dl_src_zip):
                 source_zip = dl_src_zip
             else:
-                source_zip = os.path.join(root_directory, directory, release,
-                    preprocess, self.fromto[0]+'.zip')
+                source_zip = os.path.join(
+                    root_directory,
+                    directory,
+                    release,
+                    preprocess,
+                    self.fromto[0] + '.zip'
+                )
+
         if not target_zip:
-            dl_trg_zip = os.path.join(download_dir, directory+'_'+release+'_'+
-                preprocess+'_'+self.fromto[1]+'.zip')
+            dl_trg_zip = os.path.join(
+                download_dir,
+                directory + '_' + release + '_' + preprocess + '_' + self.fromto[1] + '.zip'
+            )
             if os.path.isfile(dl_trg_zip):
                 target_zip = dl_trg_zip
             else:
-                target_zip = os.path.join(root_directory, directory, release,
-                    preprocess, self.fromto[1]+'.zip')
+                target_zip = os.path.join(
+                    root_directory,
+                    directory,
+                    release,
+                    preprocess,
+                    self.fromto[1] + '.zip'
+                )
 
         self.resultfile = None
         self.mosessrc = None
@@ -159,7 +205,7 @@ class OpusRead:
         if print_annotations:
             self.preprocess = 'parsed'
 
-        self.write_ids=write_ids
+        self.write_ids = write_ids
 
         self.preserve = preserve_inline_tags
 
@@ -193,16 +239,17 @@ class OpusRead:
                 preprocess, self.fromto, self.verbose, suppress_prompts)
 
         self.alignment = self.of_handler.open_alignment_file(self.alignment)
-        self.alignmentParser = AlignmentParser(self.alignment,
-                (src_range, tgt_range), attribute, threshold,
-                leave_non_alignments_out)
+        self.alignmentParser = AlignmentParser(
+            self.alignment,
+            (src_range, tgt_range),
+            attribute,
+            threshold,
+            leave_non_alignments_out
+        )
 
     def printPairs(self):
 
         self.add_file_header(self.resultfile)
-
-        prev_src_doc_name = None
-        prev_trg_doc_name = None
 
         src_parser = None
         trg_parser = None
@@ -225,37 +272,59 @@ class OpusRead:
                     src_doc = self.of_handler.open_sentence_file(src_doc_name, 'src')
                     trg_doc = self.of_handler.open_sentence_file(trg_doc_name, 'trg')
                 except KeyError as e:
-                    print('\n'+e.args[0]+'\nContinuing from next sentence file pair.')
+                    print('\n' + e.args[0] + '\nContinuing from next sentence file pair.')
                     continue
 
                 try:
-                    src_parser = SentenceParser(src_doc,
-                            preprocessing=self.preprocess, anno_attrs=self.src_annot,
-                            preserve=self.preserve, delimiter=self.annot_delimiter)
+                    src_parser = SentenceParser(
+                        src_doc,
+                        preprocessing=self.preprocess,
+                        anno_attrs=self.src_annot,
+                        preserve=self.preserve,
+                        delimiter=self.annot_delimiter
+                    )
                     src_parser.store_sentences(src_set)
-                    trg_parser = SentenceParser(trg_doc,
-                            preprocessing=self.preprocess, anno_attrs=self.trg_annot,
-                            preserve=self.preserve, delimiter=self.annot_delimiter)
+                    trg_parser = SentenceParser(
+                        trg_doc,
+                        preprocessing=self.preprocess,
+                        anno_attrs=self.trg_annot,
+                        preserve=self.preserve,
+                        delimiter=self.annot_delimiter
+                    )
                     trg_parser.store_sentences(trg_set)
                 except SentenceParserError as e:
-                    print('\n'+e.message+'\nContinuing from next sentence file pair.')
+                    print('\n' + e.message + '\nContinuing from next sentence file pair.')
                     continue
 
-            self.add_doc_names(src_doc_name, trg_doc_name,
-                    self.resultfile, self.mosessrc, self.mosestrg)
+            self.add_doc_names(
+                src_doc_name,
+                trg_doc_name,
+                self.resultfile,
+                self.mosessrc,
+                self.mosestrg
+            )
 
             for link_a in link_attrs:
                 src_result, trg_result = self.format_pair(
-                        link_a, src_parser, trg_parser, self.fromto)
+                    link_a, src_parser, trg_parser, self.fromto
+                )
 
                 if src_result == -1:
                     continue
 
-                self.out_put_pair(src_result, trg_result, self.resultfile,
-                        self.mosessrc, self.mosestrg, link_a, self.id_file,
-                        src_doc_name, trg_doc_name)
+                self.out_put_pair(
+                    src_result,
+                    trg_result,
+                    self.resultfile,
+                    self.mosessrc,
+                    self.mosestrg,
+                    link_a,
+                    self.id_file,
+                    src_doc_name,
+                    trg_doc_name
+                )
 
-                total +=1
+                total += 1
                 if total == self.maximum:
                     stop = True
                     break
@@ -283,6 +352,3 @@ class OpusRead:
 
         if self.verbose:
             print('Done')
-
-
-
