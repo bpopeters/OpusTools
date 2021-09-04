@@ -196,15 +196,13 @@ class OpusRead:
             else:
                 self.resultfile = file_open(write[0], mode='w', encoding='utf-8')
 
-        self.write_mode = write_mode
         self.write = write
         self.maximum = maximum
         self.preprocess = 'parsed' if print_annotations else preprocess
 
         self.preserve = preserve_inline_tags
 
-        self.src_annot = source_annotations
-        self.trg_annot = target_annotations
+        self.annot = source_annotations, target_annotations
         self.annot_delimiter = change_annotation_delimiter
 
         self.skip_doc = skip_regex_type(n, N)
@@ -228,12 +226,12 @@ class OpusRead:
             form_sent_langs = fromto[::-1]
         format_sentences = sentence_format_type(write_mode, form_sent_langs)
 
-        check_filters, self.check_lang = check_lang_conf_type(lang_filters)
+        check_filters, check_lang = check_lang_conf_type(lang_filters)
         self.format_pair = pair_format_type(
             write_mode,
             switch_langs,
             check_filters,
-            self.check_lang,
+            check_lang,
             format_sentences
         )
 
@@ -258,6 +256,8 @@ class OpusRead:
             leave_non_alignments_out
         )
 
+        self.not_links_or_check_lang = write_mode != "links" or check_lang
+
     def printPairs(self):
 
         self.add_file_header(self.resultfile)
@@ -277,7 +277,7 @@ class OpusRead:
             if self.skip_doc(src_doc_name):
                 continue
 
-            if (self.write_mode != 'links' or self.check_lang):
+            if self.not_links_or_check_lang:
                 try:
                     src_doc = self.of_handler.open_sentence_file(src_doc_name, 'src')
                     trg_doc = self.of_handler.open_sentence_file(trg_doc_name, 'trg')
@@ -286,10 +286,11 @@ class OpusRead:
                     continue
 
                 try:
+                    src_annot, trg_annot = self.annot
                     src_parser = SentenceParser(
                         src_doc,
                         preprocessing=self.preprocess,
-                        anno_attrs=self.src_annot,
+                        anno_attrs=src_annot,
                         preserve=self.preserve,
                         delimiter=self.annot_delimiter
                     )
@@ -297,7 +298,7 @@ class OpusRead:
                     trg_parser = SentenceParser(
                         trg_doc,
                         preprocessing=self.preprocess,
-                        anno_attrs=self.trg_annot,
+                        anno_attrs=trg_annot,
                         preserve=self.preserve,
                         delimiter=self.annot_delimiter
                     )
@@ -349,7 +350,7 @@ class OpusRead:
         self.alignmentParser.bp.close_document()
 
         if self.write:
-            if self.write_mode == 'moses' and self.mosessrc:
+            if self.mosessrc is not None:
                 self.mosessrc.close()
                 self.mosestrg.close()
             else:
