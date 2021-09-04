@@ -4,7 +4,9 @@ import re
 from .parse.alignment_parser import AlignmentParser
 from .parse.sentence_parser import SentenceParser, SentenceParserError
 from .util import file_open
-from .formatting import *
+from .formatting import file_header_type, doc_name_type, file_ending_type, \
+    out_put_type, sentence_format_type, check_lang_conf_type, \
+    pair_format_type, doc_ending_type
 from .opus_file_handler import OpusFileHandler
 
 
