@@ -113,16 +113,13 @@ class OpusRead:
         verbose -- Print progress messages
         """
 
-        self.fromto = sorted([source, target])
-        fromto_copy = [source, target]
-        self.switch_langs = fromto_copy != self.fromto
-
-        self.src_range = src_range
-        self.tgt_range = tgt_range
+        fromto = sorted([source, target])
+        self.fromto = fromto
+        switch_langs = fromto != [source, target]
 
         self.verbose = verbose
 
-        if self.switch_langs:
+        if switch_langs:
             temp = src_range
             src_range = tgt_range
             tgt_range = temp
@@ -146,17 +143,17 @@ class OpusRead:
             directory,
             release,
             'xml',
-            self.fromto[0] + '-' + self.fromto[1] + '.xml.gz'
+            "-".join(fromto) + '.xml.gz'
         )
         if alignment_file == -1:
-            self.alignment = default_alignment
+            alignment = default_alignment
         else:
-            self.alignment = alignment_file
+            alignment = alignment_file
 
         if not source_zip:
             dl_src_zip = os.path.join(
                 download_dir,
-                directory + '_' + release + '_' + preprocess + '_' + self.fromto[0] + '.zip'
+                directory + '_' + release + '_' + preprocess + '_' + fromto[0] + '.zip'
             )
             if os.path.isfile(dl_src_zip):
                 source_zip = dl_src_zip
@@ -166,13 +163,13 @@ class OpusRead:
                     directory,
                     release,
                     preprocess,
-                    self.fromto[0] + '.zip'
+                    fromto[0] + '.zip'
                 )
 
         if not target_zip:
             dl_trg_zip = os.path.join(
                 download_dir,
-                directory + '_' + release + '_' + preprocess + '_' + self.fromto[1] + '.zip'
+                directory + '_' + release + '_' + preprocess + '_' + fromto[1] + '.zip'
             )
             if os.path.isfile(dl_trg_zip):
                 target_zip = dl_trg_zip
@@ -182,17 +179,16 @@ class OpusRead:
                     directory,
                     release,
                     preprocess,
-                    self.fromto[1] + '.zip'
+                    fromto[1] + '.zip'
                 )
-
-        self.resultfile = None
-        self.mosessrc = None
-        self.mosestrg = None
 
         self.id_file = None
         if write_ids:
             self.id_file = file_open(write_ids, 'w', encoding='utf-8')
 
+        self.resultfile = None
+        self.mosessrc = None
+        self.mosestrg = None
         if write:
             if write_mode == 'moses' and len(write) == 2:
                 self.mosessrc = file_open(write[0], mode='w', encoding='utf-8')
@@ -203,11 +199,7 @@ class OpusRead:
         self.write_mode = write_mode
         self.write = write
         self.maximum = maximum
-        self.preprocess = preprocess
-        if print_annotations:
-            self.preprocess = 'parsed'
-
-        self.write_ids = write_ids
+        self.preprocess = 'parsed' if print_annotations else preprocess
 
         self.preserve = preserve_inline_tags
 
@@ -223,26 +215,43 @@ class OpusRead:
         self.add_file_ending = file_ending_type(write_mode, write)
 
         self.out_put_pair = out_put_type(
-                write_mode, write, write_ids, self.switch_langs, attribute,
-                change_moses_delimiter)
+            write_mode,
+            write,
+            write_ids,
+            switch_langs,
+            attribute,
+            change_moses_delimiter
+        )
 
-        form_sent_langs = self.fromto.copy()
-        if self.switch_langs:
-            form_sent_langs = [self.fromto[1], self.fromto[0]]
+        form_sent_langs = fromto.copy()
+        if switch_langs:
+            form_sent_langs = fromto[::-1]
         format_sentences = sentence_format_type(write_mode, form_sent_langs)
 
         check_filters, self.check_lang = check_lang_conf_type(lang_filters)
         self.format_pair = pair_format_type(
-                write_mode, self.switch_langs, check_filters, self.check_lang,
-                format_sentences)
+            write_mode,
+            switch_langs,
+            check_filters,
+            self.check_lang,
+            format_sentences
+        )
 
         self.of_handler = OpusFileHandler(
-                download_dir, source_zip, target_zip, directory, release,
-                preprocess, self.fromto, self.verbose, suppress_prompts)
+            download_dir,
+            source_zip,
+            target_zip,
+            directory,
+            release,
+            preprocess,
+            fromto,
+            verbose,
+            suppress_prompts
+        )
 
-        self.alignment = self.of_handler.open_alignment_file(self.alignment)
+        alignment = self.of_handler.open_alignment_file(alignment)
         self.alignmentParser = AlignmentParser(
-            self.alignment,
+            alignment,
             (src_range, tgt_range),
             attribute,
             threshold,
@@ -268,8 +277,7 @@ class OpusRead:
             if self.skip_doc(src_doc_name):
                 continue
 
-            if (self.write_mode != 'links' or
-                    (self.write_mode == 'links' and self.check_lang)):
+            if (self.write_mode != 'links' or self.check_lang):
                 try:
                     src_doc = self.of_handler.open_sentence_file(src_doc_name, 'src')
                     trg_doc = self.of_handler.open_sentence_file(trg_doc_name, 'trg')
@@ -347,7 +355,7 @@ class OpusRead:
             else:
                 self.resultfile.close()
 
-        if self.write_ids:
+        if self.id_file is not None:
             self.id_file.close()
 
         self.of_handler.close_zipfiles()
