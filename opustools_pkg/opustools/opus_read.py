@@ -7,7 +7,7 @@ from .parse.sentence_parser import SentenceParser, SentenceParserError
 from .util import file_open
 from .formatting import file_ending_type, \
     output_type, sentence_format_type, check_lang_conf_type, \
-    pair_format_type, doc_ending_type
+    pair_format_type
 from .opus_file_handler import OpusFileHandler
 
 
@@ -200,7 +200,6 @@ class OpusRead:
 
         self._write_mode = write_mode
         self._print_file_names = print_file_names
-        self.add_doc_ending = doc_ending_type(write_mode, write)
         self.add_file_ending = file_ending_type(write_mode, write)
 
         self.output_pair = output_type(
@@ -294,6 +293,16 @@ class OpusRead:
                 template = '\n<fromDoc>{}</fromDoc>\n<toDoc>{}</toDoc>\n\n'
                 outf.write(template.format(src_doc_name, trg_doc_name))
 
+    def _add_doc_ending(self, outf):
+        if not outf:
+            outf = sys.stdout
+
+        # either write or print, you know the drill
+        if self._write_mode == "normal":
+            outf.write('\n================================\n')
+        elif self._write_mode == "links":
+            outf.write(' </linkGrp>\n')
+
     def print_pairs(self):
 
         outfiles = [file_open(path, mode='w', encoding='utf-8')
@@ -386,7 +395,7 @@ class OpusRead:
                     stop = True
                     break
 
-            self.add_doc_ending(resultfile)
+            self._add_doc_ending(outfiles[0] if outfiles else None)
 
             if stop:
                 break

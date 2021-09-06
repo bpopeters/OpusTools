@@ -1,34 +1,5 @@
 import html
 
-def doc_ending_type(wmode, write):
-    """Select function for adding document ending"""
-
-    linkend = ' </linkGrp>\n'
-    normalend = '\n================================\n'
-
-    def normal_write(resultfile):
-        resultfile.write(normalend)
-    def normal_print(resultfile):
-        print(normalend, end='')
-    def link_write(resultfile):
-        resultfile.write(linkend)
-    def link_print(resultfile):
-        print(linkend, end='')
-    def nothing(resultfile):
-        pass
-
-    if write:
-        if wmode == 'normal':
-            return normal_write
-        if wmode == 'links':
-            return link_write
-    else:
-        if wmode == 'normal':
-            return normal_print
-        if wmode == 'links':
-            return link_print
-    return nothing
-
 def file_ending_type(wmode, write):
     """Select function for adding file ending"""
     tmxend = '\t</body>\n</tmx>\n'
@@ -162,7 +133,7 @@ def output_type(wmode, write, write_ids, switch_langs, attribute, moses_del):
 
     if write_ids:
         if wmode in ['normal', 'tmx'] and write:
-            return normal_write_ids
+            return normal_write_id
         if wmode in ['normal', 'tmx'] and not write:
             return normal_print_id
         if wmode == 'moses' and not write:
