@@ -6,7 +6,7 @@ from .parse.alignment_parser import AlignmentParser
 from .parse.sentence_parser import SentenceParser, SentenceParserError
 from .util import file_open
 from .formatting import output_type, sentence_format_type, \
-    check_lang_conf_type, pair_format_type
+    check_lang_conf_type
 from .opus_file_handler import OpusFileHandler
 
 
@@ -214,16 +214,11 @@ class OpusRead:
         form_sent_langs = fromto.copy()
         if switch_langs:
             form_sent_langs = fromto[::-1]
-        format_sentences = sentence_format_type(write_mode, form_sent_langs)
+        self._switch_langs = switch_langs
 
-        check_filters, check_lang = check_lang_conf_type(lang_filters)
-        self.format_pair = pair_format_type(
-            write_mode,
-            switch_langs,
-            check_filters,
-            check_lang,
-            format_sentences
-        )
+        self.format_sentences = sentence_format_type(write_mode, form_sent_langs)
+
+        self.check_filters, check_lang = check_lang_conf_type(lang_filters)
 
         self.of_handler = OpusFileHandler(
             download_dir,
@@ -311,6 +306,33 @@ class OpusRead:
         elif self._write_mode == "links":
             outf.write('</cesAlign>\n')
 
+    def _format_pair(self, link_a, src_parser, trg_parser):
+        if not self.not_links_or_check_lang:
+            return None, None
+
+        str_src_ids, str_trg_ids = link_a['xtargets'].split(';')
+        src_ids = str_src_ids.split()
+        trg_ids = str_trg_ids.split()
+
+        src_sentences, src_attrs = src_parser.read_sentence(src_ids)
+        trg_sentences, trg_attrs = trg_parser.read_sentence(trg_ids)
+
+        if self.check_filters(src_attrs, trg_attrs):
+            return -1, -1
+
+        if self._write_mode == "links":
+            return None, None
+
+        if self._switch_langs:
+            # adversarial variable naming
+            src_result = self.format_sentences[0](trg_sentences, trg_ids)
+            trg_result = self.format_sentences[1](src_sentences, src_ids)
+            return src_result, trg_result
+        else:
+            src_result = self.format_sentences[0](src_sentences, src_ids)
+            trg_result = self.format_sentences[1](trg_sentences, trg_ids)
+            return src_result, trg_result
+
     def print_pairs(self):
 
         outfiles = [file_open(path, mode='w', encoding='utf-8')
@@ -379,8 +401,8 @@ class OpusRead:
             self._add_doc_names(src_doc_name, trg_doc_name, outfiles)
 
             for link_a in link_attrs:
-                src_result, trg_result = self.format_pair(
-                    link_a, src_parser, trg_parser, self.fromto
+                src_result, trg_result = self._format_pair(
+                    link_a, src_parser, trg_parser
                 )
 
                 if src_result == -1:
