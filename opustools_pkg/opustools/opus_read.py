@@ -6,7 +6,7 @@ import html
 from .parse.alignment_parser import AlignmentParser
 from .parse.sentence_parser import SentenceParser, SentenceParserError
 from .util import file_open
-from .formatting import output_type, check_lang_conf_type
+from .formatting import check_lang_conf_type
 from .opus_file_handler import OpusFileHandler
 
 
@@ -207,14 +207,8 @@ class OpusRead:
         self._write_mode = write_mode
         self._print_file_names = print_file_names
 
-        self.output_pair = output_type(
-            write_mode,  # attribute
-            write,  # attribute
-            write_ids,  # attribute
-            switch_langs,
-            attribute,
-            change_moses_delimiter
-        )
+        self._moses_del = change_moses_delimiter
+        self._attribute = attribute
 
         self.check_filters, check_lang = check_lang_conf_type(lang_filters)
 
@@ -240,6 +234,60 @@ class OpusRead:
         )
 
         self.not_links_or_check_lang = write_mode != "links" or check_lang
+
+    def _output_pair(self, src_result, trg_result, out_paths, link_a):
+        if not out_paths:
+            outf = sys.stdout
+        elif len(out_paths) == 1:
+            outf = out_paths[0]
+        else:
+            assert self._write_mode == "moses"
+            outf = out_paths
+
+        moses_del = '\t' if self.write_ids else self._moses_del
+
+        if self._write_mode in {"normal", "tmx"}:
+            outf.write(src_result + trg_result)
+
+        elif self._write_mode == "moses":
+            if out_paths is not None and len(out_paths) == 2:
+                assert len(outf) == 2
+                src_outf, trg_outf = outf
+                src_outf.write(src_result)
+                trg_outf.write(trg_result)
+            else:
+                outf.write(src_result[:-1] + moses_del + trg_result)
+
+        elif self._write_mode == "links":
+            links = ['{}="{}"'.format(k, v) for k, v in link_a.items()]
+            str_link = '<link {} />\n'.format(' '.join(links))
+            outf.write(str_link)
+
+    def _write_ids(self, id_file, link_a, src_doc, trg_doc):
+        """
+        some notes about what to do in the "switch" case (which currently does
+        not apply):
+        def switch(link_a, id_file, src_doc, trg_doc):
+            ids = link_a['xtargets'].split(';')
+            if attribute in link_a.keys():
+                id_file.write(id_temp.format(
+                    trg_doc, src_doc, ids[1], ids[0], link_a[attribute]))
+            else:
+                id_file.write(id_temp.format(
+                    trg_doc, src_doc, ids[1], ids[0], 'None'))
+
+        def switch_no_attr(link_a, id_file, src_doc, trg_doc):
+            ids = link_a['xtargets'].split(';')
+            id_file.write(id_temp.format(
+                trg_doc, src_doc, ids[1], ids[0], 'None'))
+        """
+        ids = link_a['xtargets'].split(';')
+        if self._attribute and self._attribute in link_a:
+            last_piece = link_a[self._attribute]
+        else:
+            last_piece = 'None'
+        line_pieces = [src_doc, trg_doc, ids[0], ids[1], last_piece]
+        id_file.write("\t".join(line_pieces) + "\n")
 
     def _add_file_header(self, outf):
         if outf is None:
@@ -367,17 +415,10 @@ class OpusRead:
 
         self._add_file_header(outfiles[0] if outfiles else None)
 
-        if outfiles:
-            assert len(outfiles) <= 2
-            if len(outfiles) == 2:
-                resultfile, mosessrc, mosestrg = None, *outfiles
-            else:
-                resultfile, mosessrc, mosestrg = outfiles[0], None, None
-        else:
-            resultfile, mosessrc, mosestrg = None, None, None
-
         if self.write_ids:
             id_file = file_open(self.write_ids, 'w', encoding='utf-8')
+        else:
+            id_file = None  # hmm
 
         src_parser = None
         trg_parser = None
@@ -435,17 +476,11 @@ class OpusRead:
                 if src_result == -1:
                     continue
 
-                self.output_pair(
-                    src_result,
-                    trg_result,
-                    resultfile,
-                    mosessrc,
-                    mosestrg,
-                    link_a,
-                    id_file,
-                    src_doc_name,
-                    trg_doc_name
-                )
+                self._output_pair(src_result, trg_result, outfiles, link_a)
+                if self.write_ids:
+                    self._write_ids(
+                        id_file, link_a, src_doc_name, trg_doc_name
+                    )
 
                 total += 1
                 if total == self.maximum:
