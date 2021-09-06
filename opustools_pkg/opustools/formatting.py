@@ -133,47 +133,6 @@ def output_type(wmode, write, write_ids, switch_langs, attribute, moses_del):
             return links_print
     return nothing
 
-def sentence_format_type(wmode, fromto):
-    """Select function for formatting sentences"""
-
-    def normal_src(sentences, ids):
-        result = '\n================================'
-        for i, sentence in enumerate(sentences):
-            result += ('\n(src)="'+ids[i]+'">'+sentence)
-        return result
-
-    def normal_trg(sentences, ids):
-        result = ''
-        for i, sentence in enumerate(sentences):
-            result += ('\n(trg)="'+ids[i]+'">'+sentence)
-        return result
-
-    def tmx_src(sentences, ids):
-        result = ''
-        for sentence in sentences:
-            result += '\t\t<tu>'
-            result += ('\n\t\t\t<tuv xml:lang="' + fromto[0] + '"><seg>')
-            result += html.escape(sentence, quote=False) + '</seg></tuv>'
-        return result
-
-    def tmx_trg(sentences, ids):
-        result = ''
-        for sentence in sentences:
-            result += ('\n\t\t\t<tuv xml:lang="' + fromto[1] + '"><seg>')
-            result += html.escape(sentence, quote=False) + '</seg></tuv>'
-            result += '\n\t\t</tu>\n'
-        return result
-
-    def moses(sentences, ids):
-        result = ' '.join(sentences) + '\n'
-        return result
-
-    format_fs = {'normal': (normal_src, normal_trg),
-                 'tmx': (tmx_src, tmx_trg),
-                 'moses': (moses, moses),
-                 'links': (None, None)}
-
-    return format_fs[wmode]
 
 def check_lang_confs(lang_filters, attrs):
     names = ('cld2', 'langid')

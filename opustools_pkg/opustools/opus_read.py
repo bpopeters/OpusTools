@@ -1,12 +1,12 @@
 import os
 import re
 import sys
+import html
 
 from .parse.alignment_parser import AlignmentParser
 from .parse.sentence_parser import SentenceParser, SentenceParserError
 from .util import file_open
-from .formatting import output_type, sentence_format_type, \
-    check_lang_conf_type
+from .formatting import output_type, check_lang_conf_type
 from .opus_file_handler import OpusFileHandler
 
 
@@ -130,13 +130,17 @@ class OpusRead:
         N -- Skip all doucments that match the regex
         verbose -- Print progress messages
         """
-        self.source = source  # might not be same as fromto[0]
-        fromto = sorted([source, target])
-        self.fromto = fromto
-        switch_langs = fromto != [source, target]
-
         self.verbose = verbose
 
+        self.fromto = [source, target]
+        sorted_langs = sorted([source, target])
+        assert self.fromto == sorted_langs, \
+            "Just stay in alphabetical order for now"
+
+        switch_langs = self.fromto != sorted_langs
+        self._switch_langs = switch_langs
+
+        '''
         if switch_langs:
             src_range, tgt_range = tgt_range, src_range
             src_cld2, trg_cld2 = trg_cld2, src_cld2
@@ -146,6 +150,7 @@ class OpusRead:
             temp = source_annotations.copy()
             source_annotations = target_annotations.copy()
             target_annotations = temp.copy()
+        '''
 
         lang_filters = [src_cld2, src_langid, trg_cld2, trg_langid]
 
@@ -155,11 +160,13 @@ class OpusRead:
                 directory,
                 release,
                 'xml',
-                "-".join(fromto) + '.xml.gz'
+                "-".join(sorted_langs) + '.xml.gz'
             )
         else:
             alignment = alignment_file
 
+        # "source" currently means first alphabetically, which is bad(?)
+        # source should mean the source, not the first alphabetically
         if not source_zip:
             source_zip = _find_zip(
                 download_dir,
@@ -167,7 +174,7 @@ class OpusRead:
                 root_directory,
                 release,
                 preprocess,
-                fromto[0]
+                source
             )
         if not target_zip:
             target_zip = _find_zip(
@@ -176,7 +183,7 @@ class OpusRead:
                 root_directory,
                 release,
                 preprocess,
-                fromto[1]
+                target
             )
 
         self.write_ids = write_ids
@@ -200,8 +207,6 @@ class OpusRead:
         self._write_mode = write_mode
         self._print_file_names = print_file_names
 
-        # args = (src_result, trg_result, resultfile, mosessrc, mosestrg,
-        # link_a, id_file, src_doc_name, trg_doc_name)
         self.output_pair = output_type(
             write_mode,  # attribute
             write,  # attribute
@@ -210,13 +215,6 @@ class OpusRead:
             attribute,
             change_moses_delimiter
         )
-
-        form_sent_langs = fromto.copy()
-        if switch_langs:
-            form_sent_langs = fromto[::-1]
-        self._switch_langs = switch_langs
-
-        self.format_sentences = sentence_format_type(write_mode, form_sent_langs)
 
         self.check_filters, check_lang = check_lang_conf_type(lang_filters)
 
@@ -227,7 +225,7 @@ class OpusRead:
             directory,
             release,
             preprocess,
-            fromto,
+            self.fromto,  # ...
             verbose,
             suppress_prompts
         )
@@ -249,7 +247,7 @@ class OpusRead:
 
         if self._write_mode == "tmx":
             header = ('<?xml version="1.0" encoding="utf-8"?>\n<tmx '
-                      'version="1.4.">\n<header srclang="' + self.source +
+                      'version="1.4.">\n<header srclang="' + self.fromto[0] +
                       '"\n\tadminlang="en"\n\tsegtype="sentence"\n\tdatatype='
                       '"PlainText" />\n\t<body>\n')
             outf.write(header)
@@ -325,13 +323,42 @@ class OpusRead:
 
         if self._switch_langs:
             # adversarial variable naming
-            src_result = self.format_sentences[0](trg_sentences, trg_ids)
-            trg_result = self.format_sentences[1](src_sentences, src_ids)
+            src_result = self._format_sentences(trg_sentences, trg_ids, "src")
+            trg_result = self._format_sentences(src_sentences, src_ids, "tgt")
             return src_result, trg_result
         else:
-            src_result = self.format_sentences[0](src_sentences, src_ids)
-            trg_result = self.format_sentences[1](trg_sentences, trg_ids)
+            src_result = self._format_sentences(src_sentences, src_ids, "src")
+            trg_result = self._format_sentences(trg_sentences, trg_ids, "trg")
             return src_result, trg_result
+
+    def _format_sentences(self, sentences, ids, side="src"):
+        assert side in {"src", "trg"}
+        # don't do anything for links
+        if self._write_mode == "moses":
+            return ' '.join(sentences) + '\n'
+
+        elif self._write_mode == "normal":
+            result = '\n================================' if side == "src" else ''
+            for i, sentence in enumerate(sentences):
+                result += ('\n({})="{}">'.format(side, ids[i]) + sentence)
+            return result
+
+        elif self._write_mode == "tmx":
+            # need to get fromto...is it still an attribute?
+            result = ''
+            for sentence in sentences:
+                # src case:
+                lang = self.fromto[int(side != "src")]
+                if side == "src":
+                    result += '\t\t<tu>'
+                result += ('\n\t\t\t<tuv xml:lang="{}"><seg>'.format(lang))
+                result += html.escape(sentence, quote=False) + '</seg></tuv>'
+                if side == "trg":
+                    result += '\n\t\t</tu>\n'
+            return result
+
+        else:
+            return None
 
     def print_pairs(self):
 

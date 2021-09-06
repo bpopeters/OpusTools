@@ -44,9 +44,11 @@ class OpusFileHandler:
         look for pre-downloaded local file, and finally, download
         missing files"""
 
-        local_align_name = os.path.join(self.download_dir,
-                self.directory+'_'+ self.release+'_xml_'+self.fromto[0]+'-'+
-                self.fromto[1]+'.xml.gz')
+        align_basename = "_".join(
+            [self.directory, self.release, "xml",
+             "-".join(self.fromto) + ".xml.gz"]
+        )
+        local_align_name = os.path.join(self.download_dir, align_basename)
         if self.verbose: print('Reading alignment file ', end='')
 
         if os.path.isfile(align_name):
