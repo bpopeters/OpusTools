@@ -1,35 +1,5 @@
 import html
 
-def file_ending_type(wmode, write):
-    """Select function for adding file ending"""
-    tmxend = '\t</body>\n</tmx>\n'
-    linkend = '</cesAlign>\n'
-
-    def tmx_write(resultfile):
-        resultfile.write(tmxend)
-    def tmx_print(resultfile):
-        print(tmxend, end='')
-    def link_write(resultfile):
-        resultfile.write(linkend)
-    def link_print(resultfile):
-        print(linkend, end='')
-    def nothing(resultfile):
-        pass
-
-    if write:
-        if wmode == 'tmx':
-            return tmx_write
-        if wmode == 'links':
-            return link_write
-    else:
-        if wmode == 'tmx':
-            return tmx_print
-        if wmode == 'links':
-            return link_print
-    return nothing
-
-
-
 def write_id_line_type(switch_langs, attribute):
     """Select function for writing id lines"""
 
@@ -199,9 +169,9 @@ def sentence_format_type(wmode, fromto):
         return result
 
     format_fs = {'normal': (normal_src, normal_trg),
-            'tmx': (tmx_src, tmx_trg),
-            'moses': (moses, moses),
-            'links': (None, None)}
+                 'tmx': (tmx_src, tmx_trg),
+                 'moses': (moses, moses),
+                 'links': (None, None)}
 
     return format_fs[wmode]
 

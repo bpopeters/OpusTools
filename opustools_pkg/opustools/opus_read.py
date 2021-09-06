@@ -5,9 +5,8 @@ import sys
 from .parse.alignment_parser import AlignmentParser
 from .parse.sentence_parser import SentenceParser, SentenceParserError
 from .util import file_open
-from .formatting import file_ending_type, \
-    output_type, sentence_format_type, check_lang_conf_type, \
-    pair_format_type
+from .formatting import output_type, sentence_format_type, \
+    check_lang_conf_type, pair_format_type
 from .opus_file_handler import OpusFileHandler
 
 
@@ -200,12 +199,13 @@ class OpusRead:
 
         self._write_mode = write_mode
         self._print_file_names = print_file_names
-        self.add_file_ending = file_ending_type(write_mode, write)
 
+        # args = (src_result, trg_result, resultfile, mosessrc, mosestrg,
+        # link_a, id_file, src_doc_name, trg_doc_name)
         self.output_pair = output_type(
-            write_mode,
-            write,
-            write_ids,
+            write_mode,  # attribute
+            write,  # attribute
+            write_ids,  # attribute
             switch_langs,
             attribute,
             change_moses_delimiter
@@ -302,6 +302,14 @@ class OpusRead:
             outf.write('\n================================\n')
         elif self._write_mode == "links":
             outf.write(' </linkGrp>\n')
+
+    def _add_file_ending(self, outf):
+        if not outf:
+            outf = sys.stdout
+        if self._write_mode == "tmx":
+            outf.write('\t</body>\n</tmx>\n')
+        elif self._write_mode == "links":
+            outf.write('</cesAlign>\n')
 
     def print_pairs(self):
 
@@ -400,7 +408,7 @@ class OpusRead:
             if stop:
                 break
 
-        self.add_file_ending(resultfile)
+        self._add_file_ending(outfiles[0] if outfiles else None)
 
         self.alignment_parser.bp.close_document()
 
