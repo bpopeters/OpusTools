@@ -1,81 +1,5 @@
 import html
 
-def file_header_type(wmode, write, source_lang):
-    """Select function for adding file header"""
-
-    tmxheader = ('<?xml version="1.0" encoding="utf-8"?>\n<tmx '
-        'version="1.4.">\n<header srclang="' + source_lang +
-        '"\n\tadminlang="en"\n\tsegtype="sentence"\n\tdatatype='
-        '"PlainText" />\n\t<body>\n')
-    linkheader = ('<?xml version="1.0" encoding="utf-8"?>\n'
-        '<!DOCTYPE cesAlign PUBLIC "-//CES//DTD XML cesAlign//EN" "">\n'
-        '<cesAlign version="1.0">\n')
-
-    def tmx_write(resultfile):
-        resultfile.write(tmxheader)
-    def tmx_print(resultfile):
-        print(tmxheader, end='')
-    def link_write(resultfile):
-        resultfile.write(linkheader)
-    def link_print(resultfile):
-        print(linkheader, end='')
-    def nothing(resultfile):
-        pass
-
-    if write:
-        if wmode == 'tmx':
-            return tmx_write
-        if wmode == 'links':
-            return link_write
-    else:
-        if wmode == 'tmx':
-            return tmx_print
-        if wmode == 'links':
-            return link_print
-    return nothing
-
-def doc_name_type(wmode, write, print_file_names):
-    """Select function for adding doc names"""
-
-    normal_temp = '\n# {}\n# {}\n'
-    moses_temp = '\n<fromDoc>{}</fromDoc>\n<toDoc>{}</toDoc>\n\n'
-    link_temp = ' <linkGrp targType="s" fromDoc="{}" toDoc="{}">\n'
-
-    #args = (src_doc_name, trg_doc_name, resultfile, mosessrc, mosestrg)
-    def normal_write(*args):
-        args[2].write(normal_temp.format(args[0], args[1]))
-    def normal_print(*args):
-        print(normal_temp.format(args[0], args[1]), end='')
-    def moses_write(*args):
-        args[2].write(moses_temp.format(args[0], args[1]))
-    def moses_write_2(*args):
-        args[3].write('\n<fromDoc>{}</fromDoc>\n\n'.format(args[0]))
-        args[4].write('\n<toDoc>{}</toDoc>\n\n'.format(args[1]))
-    def moses_print(*args):
-        print(moses_temp.format(args[0], args[1]), end='')
-    def links_write(*args):
-        args[2].write(link_temp.format(args[0], args[1]))
-    def links_print(*args):
-        print(link_temp.format(args[0], args[1]), end='')
-    def nothing(*args):
-        pass
-
-    if wmode == 'normal' and write:
-        return normal_write
-    if wmode == 'normal' and not write:
-        return normal_print
-    if wmode == 'moses' and print_file_names and not write:
-        return moses_print
-    if wmode == 'moses' and print_file_names and len(write) == 1:
-        return moses_write
-    if wmode == 'moses' and print_file_names and len(write) == 2:
-        return moses_write_2
-    if wmode == 'links'and write:
-        return links_write
-    if wmode == 'links'and not write:
-        return links_print
-    return nothing
-
 def doc_ending_type(wmode, write):
     """Select function for adding document ending"""
 
@@ -179,7 +103,7 @@ def write_id_line_type(switch_langs, attribute):
         else:
             return normal_no_attr
 
-def out_put_type(wmode, write, write_ids, switch_langs, attribute, moses_del):
+def output_type(wmode, write, write_ids, switch_langs, attribute, moses_del):
     """Select function for outputting sentence pairs"""
 
     #args = (src_result, trg_result, resultfile, mosessrc, mosestrg, link_a,

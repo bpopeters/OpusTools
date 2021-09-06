@@ -1,11 +1,12 @@
 import os
 import re
+import sys
 
 from .parse.alignment_parser import AlignmentParser
 from .parse.sentence_parser import SentenceParser, SentenceParserError
 from .util import file_open
-from .formatting import file_header_type, doc_name_type, file_ending_type, \
-    out_put_type, sentence_format_type, check_lang_conf_type, \
+from .formatting import file_ending_type, \
+    output_type, sentence_format_type, check_lang_conf_type, \
     pair_format_type, doc_ending_type
 from .opus_file_handler import OpusFileHandler
 
@@ -27,6 +28,24 @@ def skip_regex_type(n, N):
     if N:
         return skip_re
     return nothing
+
+
+def _find_zip(download_dir, directory, root_directory, release, preprocess, language):
+    dl_zip = os.path.join(
+        download_dir,
+        "_".join([directory, release, preprocess, language]) + ".zip"
+    )
+    if os.path.isfile(dl_zip):
+        zip_file = dl_zip
+    else:
+        zip_file = os.path.join(
+            root_directory,
+            directory,
+            release,
+            preprocess,
+            language + '.zip'
+        )
+    return zip_file
 
 
 class OpusRead:
@@ -53,8 +72,8 @@ class OpusRead:
             target_zip=None,
             change_moses_delimiter='\t',
             print_annotations=False,
-            source_annotations=['pos', 'lem'],
-            target_annotations=['pos', 'lem'],
+            source_annotations=('pos', 'lem'),
+            target_annotations=('pos', 'lem'),
             change_annotation_delimiter='|',
             src_cld2=None,
             trg_cld2=None,
@@ -112,7 +131,7 @@ class OpusRead:
         N -- Skip all doucments that match the regex
         verbose -- Print progress messages
         """
-
+        self.source = source  # might not be same as fromto[0]
         fromto = sorted([source, target])
         self.fromto = fromto
         switch_langs = fromto != [source, target]
@@ -120,81 +139,53 @@ class OpusRead:
         self.verbose = verbose
 
         if switch_langs:
-            temp = src_range
-            src_range = tgt_range
-            tgt_range = temp
-            temp = src_cld2
-            src_cld2 = trg_cld2
-            trg_cld2 = temp
-            temp = src_langid
-            src_langid = trg_langid
-            trg_langid = temp
-            temp = source_zip
-            source_zip = target_zip
-            target_zip = temp
+            src_range, tgt_range = tgt_range, src_range
+            src_cld2, trg_cld2 = trg_cld2, src_cld2
+            src_langid, trg_langid = trg_langid, src_langid
+            source_zip, target_zip = target_zip, source_zip
+            # still thinking what to do with the last one:
             temp = source_annotations.copy()
             source_annotations = target_annotations.copy()
             target_annotations = temp.copy()
 
         lang_filters = [src_cld2, src_langid, trg_cld2, trg_langid]
 
-        default_alignment = os.path.join(
-            root_directory,
-            directory,
-            release,
-            'xml',
-            "-".join(fromto) + '.xml.gz'
-        )
         if alignment_file == -1:
-            alignment = default_alignment
+            alignment = os.path.join(
+                root_directory,
+                directory,
+                release,
+                'xml',
+                "-".join(fromto) + '.xml.gz'
+            )
         else:
             alignment = alignment_file
 
         if not source_zip:
-            dl_src_zip = os.path.join(
+            source_zip = _find_zip(
                 download_dir,
-                directory + '_' + release + '_' + preprocess + '_' + fromto[0] + '.zip'
+                directory,
+                root_directory,
+                release,
+                preprocess,
+                fromto[0]
             )
-            if os.path.isfile(dl_src_zip):
-                source_zip = dl_src_zip
-            else:
-                source_zip = os.path.join(
-                    root_directory,
-                    directory,
-                    release,
-                    preprocess,
-                    fromto[0] + '.zip'
-                )
-
         if not target_zip:
-            dl_trg_zip = os.path.join(
+            target_zip = _find_zip(
                 download_dir,
-                directory + '_' + release + '_' + preprocess + '_' + fromto[1] + '.zip'
+                directory,
+                root_directory,
+                release,
+                preprocess,
+                fromto[1]
             )
-            if os.path.isfile(dl_trg_zip):
-                target_zip = dl_trg_zip
-            else:
-                target_zip = os.path.join(
-                    root_directory,
-                    directory,
-                    release,
-                    preprocess,
-                    fromto[1] + '.zip'
-                )
 
-        self.id_file = None
-        if write_ids:
-            self.id_file = file_open(write_ids, 'w', encoding='utf-8')
+        self.write_ids = write_ids
 
-        self.resultfile = None
-        self.mosessrc = None
-        self.mosestrg = None
-        if write:
-            if write_mode == 'moses' and len(write) == 2:
-                self.mosessrc = file_open(write[0], mode='w', encoding='utf-8')
-                self.mosestrg = file_open(write[1], mode='w', encoding='utf-8')
-            else:
-                self.resultfile = file_open(write[0], mode='w', encoding='utf-8')
+        if write is None:
+            write = []
+        assert len(write) < 2 or write_mode == "moses", \
+            "Specifying multiple out files is only allowed in moses mode"
 
         self.write = write
         self.maximum = maximum
@@ -207,12 +198,12 @@ class OpusRead:
 
         self.skip_doc = skip_regex_type(n, N)
 
-        self.add_file_header = file_header_type(write_mode, write, source)
-        self.add_doc_names = doc_name_type(write_mode, write, print_file_names)
+        self._write_mode = write_mode
+        self._print_file_names = print_file_names
         self.add_doc_ending = doc_ending_type(write_mode, write)
         self.add_file_ending = file_ending_type(write_mode, write)
 
-        self.out_put_pair = out_put_type(
+        self.output_pair = output_type(
             write_mode,
             write,
             write_ids,
@@ -248,7 +239,7 @@ class OpusRead:
         )
 
         alignment = self.of_handler.open_alignment_file(alignment)
-        self.alignmentParser = AlignmentParser(
+        self.alignment_parser = AlignmentParser(
             alignment,
             (src_range, tgt_range),
             attribute,
@@ -258,18 +249,79 @@ class OpusRead:
 
         self.not_links_or_check_lang = write_mode != "links" or check_lang
 
-    def printPairs(self):
+    def _add_file_header(self, outf):
+        if outf is None:
+            outf = sys.stdout
 
-        self.add_file_header(self.resultfile)
+        if self._write_mode == "tmx":
+            header = ('<?xml version="1.0" encoding="utf-8"?>\n<tmx '
+                      'version="1.4.">\n<header srclang="' + self.source +
+                      '"\n\tadminlang="en"\n\tsegtype="sentence"\n\tdatatype='
+                      '"PlainText" />\n\t<body>\n')
+            outf.write(header)
+        elif self._write_mode == "links":
+            header = ('<?xml version="1.0" encoding="utf-8"?>\n'
+                      '<!DOCTYPE cesAlign PUBLIC "-//CES//DTD XML cesAlign//EN" "">\n'
+                      '<cesAlign version="1.0">\n')
+            outf.write(header)
+
+    def _add_doc_names(self, src_doc_name, trg_doc_name, out_paths):
+        if not out_paths:
+            outf = sys.stdout
+        elif len(out_paths) == 1:
+            outf = out_paths[0]
+        else:
+            assert self._write_mode == "moses"
+            outf = out_paths
+
+        if self._write_mode == "normal":
+            template = '\n# {}\n# {}\n'
+            outf.write(template.format(src_doc_name, trg_doc_name))
+
+        elif self._write_mode == "links":
+            template = ' <linkGrp targType="s" fromDoc="{}" toDoc="{}">\n'
+            outf.write(template.format(src_doc_name, trg_doc_name))
+
+        elif self._write_mode == "moses":
+            if out_paths is not None and len(out_paths) == 2:
+                assert len(outf) == 2
+                # the order of labels seems to be backwards if the src language
+                # is not alphabetically before the trg
+                src_outf, trg_outf = outf
+                src_outf.write('\n<fromDoc>{}</fromDoc>\n\n'.format(src_doc_name))
+                trg_outf.write('\n<toDoc>{}</toDoc>\n\n'.format(trg_doc_name))
+            else:
+                template = '\n<fromDoc>{}</fromDoc>\n<toDoc>{}</toDoc>\n\n'
+                outf.write(template.format(src_doc_name, trg_doc_name))
+
+    def print_pairs(self):
+
+        outfiles = [file_open(path, mode='w', encoding='utf-8')
+                    for path in self.write]
+
+        self._add_file_header(outfiles[0] if outfiles else None)
+
+        if outfiles:
+            assert len(outfiles) <= 2
+            if len(outfiles) == 2:
+                resultfile, mosessrc, mosestrg = None, *outfiles
+            else:
+                resultfile, mosessrc, mosestrg = outfiles[0], None, None
+        else:
+            resultfile, mosessrc, mosestrg = None, None, None
+
+        if self.write_ids:
+            id_file = file_open(self.write_ids, 'w', encoding='utf-8')
 
         src_parser = None
         trg_parser = None
 
         total = 0
         stop = False
+
         while True:
             link_attrs, src_set, trg_set, src_doc_name, trg_doc_name = \
-                self.alignmentParser.collect_links()
+                self.alignment_parser.collect_links()
 
             if not src_doc_name:
                 break
@@ -307,13 +359,7 @@ class OpusRead:
                     print('\n' + e.message + '\nContinuing from next sentence file pair.')
                     continue
 
-            self.add_doc_names(
-                src_doc_name,
-                trg_doc_name,
-                self.resultfile,
-                self.mosessrc,
-                self.mosestrg
-            )
+            self._add_doc_names(src_doc_name, trg_doc_name, outfiles)
 
             for link_a in link_attrs:
                 src_result, trg_result = self.format_pair(
@@ -323,14 +369,14 @@ class OpusRead:
                 if src_result == -1:
                     continue
 
-                self.out_put_pair(
+                self.output_pair(
                     src_result,
                     trg_result,
-                    self.resultfile,
-                    self.mosessrc,
-                    self.mosestrg,
+                    resultfile,
+                    mosessrc,
+                    mosestrg,
                     link_a,
-                    self.id_file,
+                    id_file,
                     src_doc_name,
                     trg_doc_name
                 )
@@ -340,24 +386,21 @@ class OpusRead:
                     stop = True
                     break
 
-            self.add_doc_ending(self.resultfile)
+            self.add_doc_ending(resultfile)
 
             if stop:
                 break
 
-        self.add_file_ending(self.resultfile)
+        self.add_file_ending(resultfile)
 
-        self.alignmentParser.bp.close_document()
+        self.alignment_parser.bp.close_document()
 
-        if self.write:
-            if self.mosessrc is not None:
-                self.mosessrc.close()
-                self.mosestrg.close()
-            else:
-                self.resultfile.close()
+        if outfiles:
+            for outfile in outfiles:
+                outfile.close()
 
-        if self.id_file is not None:
-            self.id_file.close()
+        if id_file is not None:
+            id_file.close()
 
         self.of_handler.close_zipfiles()
 

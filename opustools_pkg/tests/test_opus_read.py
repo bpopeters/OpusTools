@@ -20,7 +20,7 @@ def pairPrinterToVariable(**kwargs):
     printout = io.StringIO()
     sys.stdout = printout
     oprinter = OpusRead(**kwargs)
-    oprinter.printPairs()
+    oprinter.print_pairs()
     sys.stdout = old_stdout
     return printout.getvalue()
 
@@ -268,7 +268,7 @@ class TestOpusRead(unittest.TestCase):
     def test_normal_xml_write(self):
         OpusRead(directory='RF', source='en', target='sv', maximum=2,
             write=[os.path.join(self.tempdir1, 'test_files', 'test_result')],
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test_result'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -301,7 +301,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='RF', source='en', target='sv',
             write=[os.path.join(self.tempdir1, 'test_files', 'test_result')],
             root_directory=self.root_directory,
-            alignment_file=same_line).printPairs()
+            alignment_file=same_line).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test_result'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -377,7 +377,7 @@ class TestOpusRead(unittest.TestCase):
     def test_normal_raw_write(self):
         OpusRead(directory='RF', source='en', target='sv', maximum=1,
             write=[os.path.join(self.tempdir1, 'test_files', 'test_result')],
-            preprocess='raw', root_directory=self.root_directory).printPairs()
+            preprocess='raw', root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test_result'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -422,7 +422,7 @@ class TestOpusRead(unittest.TestCase):
             source_annotations=['upos', 'feats', 'lemma'],
             target_annotations=['upos', 'feats', 'lemma'],
             write=[os.path.join(self.tempdir1, 'test_files', 'test_result')],
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test_result'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -546,7 +546,7 @@ class TestOpusRead(unittest.TestCase):
     def test_tmx_xml_write(self):
         OpusRead(directory='RF', source='en', target='sv', maximum=1,
             write=[os.path.join(self.tempdir1, 'test_files', 'test_result')],
-            write_mode='tmx', root_directory=self.root_directory).printPairs()
+            write_mode='tmx', root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test_result'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -563,7 +563,7 @@ class TestOpusRead(unittest.TestCase):
     def test_tmx_xml_write_unalphabetical(self):
         OpusRead(directory='RF', source='sv', target='en', maximum=1,
             write=[os.path.join(self.tempdir1, 'test_files', 'test_result')],
-            write_mode='tmx', root_directory=self.root_directory).printPairs()
+            write_mode='tmx', root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test_result'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -634,7 +634,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='RF', source='en', target='sv', maximum=1,
             write_mode='tmx',
             write=[os.path.join(self.tempdir1, 'test_files', 'test_result')],
-            preprocess='raw', root_directory=self.root_directory).printPairs()
+            preprocess='raw', root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test_result'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -670,7 +670,7 @@ class TestOpusRead(unittest.TestCase):
             write_mode='tmx', preprocess='parsed', print_annotations=True,
             source_annotations=['upos', 'feats', 'lemma'],
             target_annotations=['upos', 'feats', 'lemma'],
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test_result'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -730,7 +730,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='RF', source='en', target='sv', maximum=1,
             write=[os.path.join(self.tempdir1, 'test_files', 'test.src'),
                 os.path.join(self.tempdir1, 'test_files', 'test.trg')],
-            write_mode='moses', root_directory=self.root_directory).printPairs()
+            write_mode='moses', root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test.src'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -745,7 +745,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='RF', source='sv', target='en', maximum=1,
             write=[os.path.join(self.tempdir1, 'test_files', 'test.src'),
                 os.path.join(self.tempdir1, 'test_files', 'test.trg')],
-            write_mode='moses', root_directory=self.root_directory).printPairs()
+            write_mode='moses', root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test.trg'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -761,7 +761,7 @@ class TestOpusRead(unittest.TestCase):
             write=[os.path.join(self.tempdir1, 'test_files', 'test.src'),
                 os.path.join(self.tempdir1, 'test_files', 'test.trg')],
             write_mode='moses', print_file_names=True,
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test.src'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -778,7 +778,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='RF', source='en', target='sv', maximum=1,
             write=[os.path.join(self.tempdir1, 'test_files', 'test.src')],
             write_mode='moses', root_directory=self.root_directory
-            ).printPairs()
+            ).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test.src'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -791,7 +791,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='RF', source='sv', target='en', maximum=1,
             write=[os.path.join(self.tempdir1, 'test_files', 'test.src')],
             write_mode='moses', root_directory=self.root_directory
-            ).printPairs()
+            ).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test.src'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -804,7 +804,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='RF', source='en', target='sv', maximum=1,
             write=[os.path.join(self.tempdir1, 'test_files', 'test.src')],
             write_mode='moses', print_file_names=True,
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test.src'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -818,7 +818,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='RF', source='sv', target='en', maximum=1,
             write=[os.path.join(self.tempdir1, 'test_files', 'test.src')],
             write_mode='moses', print_file_names=True,
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1,
             'test_files', 'test.src'),
                 'r') as f:
@@ -862,7 +862,7 @@ class TestOpusRead(unittest.TestCase):
             write_mode='moses',
             write=[os.path.join(self.tempdir1, 'test_files', 'test.src'),
                 os.path.join(self.tempdir1, 'test_files', 'test.trg')],
-            preprocess='raw', root_directory=self.root_directory).printPairs()
+            preprocess='raw', root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1,
                 'test_files', 'test.src'), 'r') as f:
             self.assertEqual(f.read(),
@@ -889,7 +889,7 @@ class TestOpusRead(unittest.TestCase):
             write_mode='moses', preprocess='parsed', print_annotations=True,
             source_annotations=['upos', 'feats', 'lemma'],
             target_annotations=['upos', 'feats', 'lemma'],
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test.src'),
                 'r') as f:
             self.assertEqual(f.read(), 'Statement|NOUN|Number=Sing|st'
@@ -939,7 +939,7 @@ class TestOpusRead(unittest.TestCase):
     def test_links_write(self):
         OpusRead(directory='RF', source='en', target='sv', maximum=1,
             write=[os.path.join(self.tempdir1, 'test_files', 'test_result')],
-            write_mode='links', root_directory=self.root_directory).printPairs()
+            write_mode='links', root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test_result'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -955,7 +955,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='RF', source='sv', target='en',
             write=[os.path.join(self.tempdir1, 'test_files', 'test_result')],
             write_mode='links', src_range='1-5', tgt_range='2',
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test_result'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -1016,7 +1016,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='Books', source='eo', target='pt', src_range='2',
             tgt_range='2', maximum=1, write_mode='links',
             write=[os.path.join(self.tempdir1, 'test_files', 'testlinks')],
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         var = pairPrinterToVariable(
             directory='Books', source='eo', target='pt',
             alignment_file=os.path.join(self.tempdir1, 'test_files',
@@ -1051,7 +1051,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='RF', source='en', target='sv', src_range='2',
             tgt_range='1', write_mode='links',
             write=[os.path.join(self.tempdir1, 'test_files', 'testlinks')],
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         var = pairPrinterToVariable(directory='RF', source='en', target='sv',
             alignment_file=os.path.join(self.tempdir1, 'test_files',
                 'testlinks'), root_directory=self.root_directory)
@@ -1071,7 +1071,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='RF', source='en', target='sv', maximum=1,
             write_mode='links',
             write=[os.path.join(self.tempdir1, 'test_files', 'testlinks')],
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         var = pairPrinterToVariable(directory='RF', source='en', target='sv',
             write_mode='links',
             alignment_file=os.path.join(self.tempdir1, 'test_files',
@@ -1088,12 +1088,12 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='RF', source='en', target='sv', maximum=1,
             write_mode='links',
             write=[os.path.join(self.tempdir1, 'test_files', 'testlinks')],
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         OpusRead(directory='RF', source='en', target='sv', write_mode='links',
             alignment_file=os.path.join(self.tempdir1, 'test_files',
                 'testlinks'),
             write=[os.path.join(self.tempdir1, 'test_files', 'testresult')],
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'testresult'),
                 'r') as f:
             self.assertEqual(f.read(), '<?xml version="1.0" encoding="utf-8"?>'
@@ -1107,7 +1107,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='Books', source='eo', target='pt', maximum=1,
             write_mode='links',
             write=[os.path.join(self.tempdir1, 'test_files', 'testlinks')],
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         var = pairPrinterToVariable(directory='Books', source='eo',
             target='pt', write_mode='links',
             alignment_file=os.path.join(self.tempdir1, 'test_files',
@@ -1124,12 +1124,12 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='Books', source='eo', target='pt', maximum=1,
             write_mode='links',
             write=[os.path.join(self.tempdir1, 'test_files', 'testlinks')],
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         OpusRead(directory='Books', source='eo', target='pt',
             write_mode='links', alignment_file=os.path.join(self.tempdir1,
                 'test_files', 'testlinks'),
             write=[os.path.join(self.tempdir1, 'test_files', 'testresult')],
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'testresult'),
                 'r') as f:
             self.assertEqual(f.read(), '<?xml version="1.0" encoding="utf-8"?>'
@@ -1461,7 +1461,7 @@ class TestOpusRead(unittest.TestCase):
             trg_langid=['fi', '1'],
             alignment_file=os.path.join(self.tempdir1, 'books_alignment.xml'),
             write=[os.path.join(self.tempdir1, 'test_files', 'result')],
-            write_mode='links', download_dir=self.tempdir1).printPairs()
+            write_mode='links', download_dir=self.tempdir1).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'result'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -1520,7 +1520,7 @@ class TestOpusRead(unittest.TestCase):
             alignment_file=os.path.join(self.tempdir1, 'unfound.xml.gz'),
             suppress_prompts=True, download_dir=self.tempdir1,
             root_directory=self.root_directory)
-        opr.printPairs()
+        opr.print_pairs()
         self.assertTrue(os.path.isfile(os.path.join(self.tempdir1,
             'RF_latest_xml_en-sv.xml.gz')))
         self.assertTrue(os.path.isfile(os.path.join(self.tempdir1,
@@ -1535,7 +1535,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='RF', source='en', target='sv', maximum=1,
             attribute='certainty', threshold='1',
             write_ids=os.path.join(self.tempdir1, 'test_files', 'test.id'),
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1,
                 'test_files', 'test.id')) as id_file:
             self.assertEqual(id_file.read(), 'en/1988.xml.gz\tsv/1988'
@@ -1546,7 +1546,7 @@ class TestOpusRead(unittest.TestCase):
             src_range='1', tgt_range='2', attribute='certainty',
             threshold='0.1',
             write_ids=os.path.join(self.tempdir1, 'test_files', 'test.id'),
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         with open(os.path.join(
                 self.tempdir1, 'test_files', 'test.id')) as id_file:
             self.assertEqual(id_file.read(), 'sv/1988.xml.gz\ten/1988'
@@ -1555,7 +1555,7 @@ class TestOpusRead(unittest.TestCase):
     def test_id_file_printing_with_no_attribute(self):
         OpusRead(directory='RF', source='en', target='sv', maximum=1,
             write_ids=os.path.join(self.tempdir1, 'test_files', 'test.id'),
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         with open(os.path.join(
                 self.tempdir1, 'test_files/test.id')) as id_file:
             self.assertEqual(id_file.read(), 'en/1988.xml.gz\tsv/1988'
@@ -1565,7 +1565,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='RF', source='en', target='sv', maximum=1,
             attribute='certainty',
             write_ids=os.path.join(self.tempdir1, 'test_files', 'test.id'),
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         with open(os.path.join(
                 self.tempdir1, 'test_files/test.id')) as id_file:
             self.assertEqual(id_file.read(), 'en/1988.xml.gz\tsv/1988'
@@ -1575,7 +1575,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='RF', source='en', target='sv', maximum=1,
             attribute='asfg',
             write_ids=os.path.join(self.tempdir1, 'test_files', 'test.id'),
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         with open(os.path.join(
             self.tempdir1, 'test_files/test.id')) as id_file:
             self.assertEqual(id_file.read(), 'en/1988.xml.gz\tsv/1988'
@@ -1585,7 +1585,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='RF', source='en', target='sv', maximum=1,
             threshold='0',
             write_ids=os.path.join(self.tempdir1, 'test_files', 'test.id'),
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         with open(os.path.join(
             self.tempdir1, 'test_files/test.id')) as id_file:
             self.assertEqual(id_file.read(), 'en/1988.xml.gz\tsv/1988'
@@ -1660,12 +1660,12 @@ class TestOpusRead(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             OpusRead(directory='RF', source='fi', target='sv',
                 maximum=1, download_dir=self.tempdir1, suppress_prompts=True,
-                root_directory=self.root_directory).printPairs()
+                root_directory=self.root_directory).print_pairs()
 
         with self.assertRaises(FileNotFoundError):
             OpusRead(directory='RF', source='ab', target='cd',
                 maximum=1, download_dir=self.tempdir1, suppress_prompts=True,
-                root_directory=self.root_directory).printPairs()
+                root_directory=self.root_directory).print_pairs()
 
     def test_alignment_file_could_not_be_parsed(self):
         with open(os.path.join(self.tempdir1, 'test_files', 'testlinks'),
@@ -1703,7 +1703,7 @@ class TestOpusRead(unittest.TestCase):
                         'test_files', 'testlinks'),
                     source_zip = os.path.join(self.tempdir1, 'test_en.zip'),
                     target_zip = os.path.join(self.tempdir1, 'test_fi.zip')
-                ).printPairs()
+                ).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'testlinks'),
                 'w') as f:
             f.write(
@@ -1718,7 +1718,7 @@ class TestOpusRead(unittest.TestCase):
                         'test_files', 'testlinks'),
                     source_zip = os.path.join(self.tempdir1, 'test_en.zip'),
                     target_zip = os.path.join(self.tempdir1, 'test_fi.zip')
-                ).printPairs()
+                ).print_pairs()
 
     def test_sentence_file_could_not_be_parsed(self):
         with open(os.path.join(self.tempdir1, 'test_files', 'testlinks'),
@@ -1827,7 +1827,7 @@ class TestOpusRead(unittest.TestCase):
         OpusRead(directory='RF', source='en', target='sv', maximum=1,
             write=[os.path.join(self.tempdir1, 'test_files', 'test.src')],
             write_mode='moses', root_directory=self.root_directory,
-            change_moses_delimiter=' ||| ').printPairs()
+            change_moses_delimiter=' ||| ').print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test.src'),
                 'r') as f:
             self.assertEqual(f.read(),
@@ -1843,7 +1843,7 @@ class TestOpusRead(unittest.TestCase):
             target_annotations=['upos', 'feats', 'lemma'],
             change_annotation_delimiter='#',
             write=[os.path.join(self.tempdir1, 'test_files', 'test_result')],
-            root_directory=self.root_directory).printPairs()
+            root_directory=self.root_directory).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'test_result'),
                 'r') as f:
             self.assertEqual(f.read(),
