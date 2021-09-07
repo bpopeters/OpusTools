@@ -16,6 +16,7 @@ def range_filter_type(src_range, trg_range):
 
         #args = (s_id, t_id, link_attr)
         if src_range != 'all':
+            # this seems completely broken to me
             if len(args[0]) not in src_range:
                 return True
         if trg_range != 'all':
@@ -46,6 +47,27 @@ def non_alignment_filter(*args):
     return False
 
 
+def _build_filters(src_trg_range, attr, thres, leave_non_alignments_out):
+    filters = []
+    if src_trg_range != ('all', 'all'):
+        src_range, trg_range = src_trg_range
+        nums = src_range.split('-')
+        if nums[0].isnumeric():
+            src_range = set(range(int(nums[0]), int(nums[-1]) + 1))
+        nums = trg_range.split('-')
+        if nums[0].isnumeric():
+            trg_range = set(range(int(nums[0]), int(nums[-1]) + 1))
+        filters.append(range_filter_type(src_range, trg_range))
+
+    if attr and thres:
+        filters.append(attribute_filter_type(attr, float(thres)))
+
+    if leave_non_alignments_out:
+        filters.append(non_alignment_filter)
+
+    return filters
+
+
 class AlignmentParser:
 
     def __init__(self, alignment_file, src_trg_range=('all', 'all'),
@@ -53,41 +75,14 @@ class AlignmentParser:
         """Parse xces alignment files and output sentence ids."""
 
         self.bp = BlockParser(alignment_file)
-        self.filters = []
+        self.filters = _build_filters(
+            src_trg_range, attr, thres, leave_non_alignments_out
+        )
 
-        src_range, trg_range = src_trg_range
-        if src_trg_range != ('all', 'all'):
-            nums = src_range.split('-')
-            if nums[0].isnumeric():
-                src_range = set(range(int(nums[0]), int(nums[-1]) + 1))
-            nums = trg_range.split('-')
-            if nums[0].isnumeric():
-                trg_range = set(range(int(nums[0]), int(nums[-1]) + 1))
-            self.filters.append(range_filter_type(src_range, trg_range))
-
-        if attr and thres:
-            self.filters.append(attribute_filter_type(attr, float(thres)))
-
-        if leave_non_alignments_out:
-            self.filters.append(non_alignment_filter)
-
-        # self.filters is a list of functions
-
-    def add_link(self, link, attrs, src_id_set, trg_id_set):
-        """Add link to set of links to be returned"""
-        ids = link.attributes['xtargets'].split(';')
-        s_id = ids[0].split()
-        t_id = ids[1].split()
-
-        for f in self.filters:
-            if f(s_id, t_id, link.attributes):
-                return attrs, src_id_set, trg_id_set
-
-        attrs.append(link.attributes)
-        src_id_set.update(s_id)
-        trg_id_set.update(t_id)
-
-        return attrs, src_id_set, trg_id_set
+    def filter_link(self, link):
+        attr = link.attributes
+        src_id, trg_id = attr['xtargets'].split(';')
+        return any(filt(src_id, trg_id, attr) for filt in self.filters)
 
     def collect_links(self):
         """Collect links for a linkGrp"""
@@ -101,15 +96,18 @@ class AlignmentParser:
             while blocks:
                 for block in blocks:
                     if block.name == 'link':
-                        # self.add_link mutates a block in place
-                        self.add_link(block, attrs, src_id_set, trg_id_set)
+                        if not self.filter_link(block):
+                            src_id, trg_id = block.attributes['xtargets'].split(";")
+                            src_id_set.update(src_id)
+                            trg_id_set.update(trg_id)
+                            attrs.append(block.attributes)
                     elif block.name == 'linkGrp':
                         src_doc = block.attributes['fromDoc']
                         trg_doc = block.attributes['toDoc']
                         return attrs, src_id_set, trg_id_set, src_doc, trg_doc
                 blocks = self.bp.get_complete_blocks()
-        except BlockParserError as e:
+        except BlockParserError as error:
             raise AlignmentParserError(
-                'Error while parsing alignment file: {error}'.format(error=e.args[0]))
+                'Error while parsing alignment file: {error}'.format(error=error.args[0]))
 
         return attrs, src_id_set, trg_id_set, src_doc, trg_doc
