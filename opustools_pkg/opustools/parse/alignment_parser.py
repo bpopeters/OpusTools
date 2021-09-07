@@ -82,7 +82,7 @@ class AlignmentParser:
     def filter_link(self, link):
         attr = link.attributes
         src_id, trg_id = attr['xtargets'].split(';')
-        return any(filt(src_id, trg_id, attr) for filt in self.filters)
+        return any(filt(src_id.split(), trg_id.split(), attr) for filt in self.filters)
 
     def collect_links(self):
         """Collect links for a linkGrp"""
@@ -98,8 +98,8 @@ class AlignmentParser:
                     if block.name == 'link':
                         if not self.filter_link(block):
                             src_id, trg_id = block.attributes['xtargets'].split(";")
-                            src_id_set.update(src_id)
-                            trg_id_set.update(trg_id)
+                            src_id_set.update(src_id.split())
+                            trg_id_set.update(trg_id.split())
                             attrs.append(block.attributes)
                     elif block.name == 'linkGrp':
                         src_doc = block.attributes['fromDoc']
