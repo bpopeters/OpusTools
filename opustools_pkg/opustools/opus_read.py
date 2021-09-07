@@ -249,7 +249,6 @@ class OpusRead:
             outf.write(src_result + trg_result)
 
         elif self._write_mode == "moses":
-            print("wtf")
             if out_paths is not None and len(out_paths) == 2:
                 assert len(outf) == 2
                 src_outf, trg_outf = outf
@@ -478,7 +477,6 @@ class OpusRead:
                 src_result, trg_result = self._format_pair(
                     link_a, src_parser, trg_parser
                 )
-                print("after format", src_result, trg_result)
 
                 if src_result == -1:
                     continue
