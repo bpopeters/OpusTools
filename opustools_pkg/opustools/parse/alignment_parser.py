@@ -49,7 +49,7 @@ def non_alignment_filter(*args):
 class AlignmentParser:
 
     def __init__(self, alignment_file, src_trg_range=('all', 'all'),
-            attr=None, thres=None, leave_non_alignments_out=False):
+                 attr=None, thres=None, leave_non_alignments_out=False):
         """Parse xces alignment files and output sentence ids."""
 
         self.bp = BlockParser(alignment_file)
@@ -59,10 +59,10 @@ class AlignmentParser:
         if src_trg_range != ('all', 'all'):
             nums = src_range.split('-')
             if nums[0].isnumeric():
-                src_range = {i for i in range(int(nums[0]), int(nums[-1])+1)}
+                src_range = set(range(int(nums[0]), int(nums[-1]) + 1))
             nums = trg_range.split('-')
             if nums[0].isnumeric():
-                trg_range = {i for i in range(int(nums[0]), int(nums[-1])+1)}
+                trg_range = set(range(int(nums[0]), int(nums[-1]) + 1))
             self.filters.append(range_filter_type(src_range, trg_range))
 
         if attr and thres:
@@ -70,6 +70,8 @@ class AlignmentParser:
 
         if leave_non_alignments_out:
             self.filters.append(non_alignment_filter)
+
+        # self.filters is a list of functions
 
     def add_link(self, link, attrs, src_id_set, trg_id_set):
         """Add link to set of links to be returned"""
@@ -99,6 +101,7 @@ class AlignmentParser:
             while blocks:
                 for block in blocks:
                     if block.name == 'link':
+                        # self.add_link mutates a block in place
                         self.add_link(block, attrs, src_id_set, trg_id_set)
                     elif block.name == 'linkGrp':
                         src_doc = block.attributes['fromDoc']
@@ -110,4 +113,3 @@ class AlignmentParser:
                 'Error while parsing alignment file: {error}'.format(error=e.args[0]))
 
         return attrs, src_id_set, trg_id_set, src_doc, trg_doc
-

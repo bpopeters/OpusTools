@@ -9,7 +9,6 @@ from .util import file_open
 from .formatting import check_lang_conf_type
 from .opus_file_handler import OpusFileHandler
 
-
 def skip_regex_type(n, N):
     "Select function to skip document names"
 
@@ -429,10 +428,15 @@ class OpusRead:
         while True:
             link_attrs, src_set, trg_set, src_doc_name, trg_doc_name = \
                 self.alignment_parser.collect_links()
+            # src_set and trg_set can be very large -- I'd guess one per file?
+            # link_attrs is a list of dicts, where the keys are
+            # "id" and "xtargets"
 
             if not src_doc_name:
                 break
 
+            # it seems wasteful to load the links before the filter: is there
+            # any way to detect the files first?
             if self.skip_doc(src_doc_name):
                 continue
 
@@ -468,6 +472,7 @@ class OpusRead:
 
             self._add_doc_names(src_doc_name, trg_doc_name, outfiles)
 
+            # write each link
             for link_a in link_attrs:
                 src_result, trg_result = self._format_pair(
                     link_a, src_parser, trg_parser
