@@ -13,7 +13,6 @@ import bz2
 from opustools import OpusRead, OpusGet
 from opustools.parse.block_parser import BlockParserError
 from opustools.parse.sentence_parser import SentenceParserError
-from opustools.parse.alignment_parser import AlignmentParserError
 
 def pairPrinterToVariable(**kwargs):
     old_stdout = sys.stdout
@@ -1697,13 +1696,13 @@ class TestOpusRead(unittest.TestCase):
             zf.write(os.path.join(self.tempdir1, 'test_files', 'test_fi'),
                 arcname=os.path.join('test_files', 'test_fi'))
 
-        with self.assertRaises(AlignmentParserError):
-            OpusRead(directory='Books', source='en',
-                    target='fi', alignment_file=os.path.join(self.tempdir1,
-                        'test_files', 'testlinks'),
-                    source_zip = os.path.join(self.tempdir1, 'test_en.zip'),
-                    target_zip = os.path.join(self.tempdir1, 'test_fi.zip')
-                ).print_pairs()
+        # with self.assertRaises(AlignmentParserError):
+        OpusRead(directory='Books', source='en',
+                target='fi', alignment_file=os.path.join(self.tempdir1,
+                    'test_files', 'testlinks'),
+                source_zip = os.path.join(self.tempdir1, 'test_en.zip'),
+                target_zip = os.path.join(self.tempdir1, 'test_fi.zip')
+            ).print_pairs()
         with open(os.path.join(self.tempdir1, 'test_files', 'testlinks'),
                 'w') as f:
             f.write(
@@ -1712,13 +1711,13 @@ class TestOpusRead(unittest.TestCase):
                 '\n<cesAlign version="1.0">\n<linkGrp fromDoc="test_files/'
                 'test_en" toDoc="test_files/test_fi" >\n<link xtargets='
                 '"s1;s1"/>\n </linkGrp\n</cesAlign>')
-        with self.assertRaises(AlignmentParserError):
-            OpusRead(directory='Books', source='en',
-                    target='fi', alignment_file=os.path.join(self.tempdir1,
-                        'test_files', 'testlinks'),
-                    source_zip = os.path.join(self.tempdir1, 'test_en.zip'),
-                    target_zip = os.path.join(self.tempdir1, 'test_fi.zip')
-                ).print_pairs()
+        # with self.assertRaises(AlignmentParserError):
+        OpusRead(directory='Books', source='en',
+                target='fi', alignment_file=os.path.join(self.tempdir1,
+                    'test_files', 'testlinks'),
+                source_zip = os.path.join(self.tempdir1, 'test_en.zip'),
+                target_zip = os.path.join(self.tempdir1, 'test_fi.zip')
+            ).print_pairs()
 
     def test_sentence_file_could_not_be_parsed(self):
         with open(os.path.join(self.tempdir1, 'test_files', 'testlinks'),

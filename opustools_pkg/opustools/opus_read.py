@@ -425,12 +425,9 @@ class OpusRead:
         total = 0
         stop = False
 
-        while True:
-            link_attrs, src_set, trg_set, src_doc_name, trg_doc_name = \
-                self.alignment_parser.collect_links()
-            # src_set and trg_set can be very large -- I'd guess one per file?
-            # link_attrs is a list of dicts, where the keys are
-            # "id" and "xtargets"
+        link_groups = self.alignment_parser.iterate_links()
+        for link_group in link_groups:
+            link_attrs, src_set, trg_set, src_doc_name, trg_doc_name = link_group
 
             if not src_doc_name:
                 break
@@ -498,8 +495,6 @@ class OpusRead:
                 break
 
         self._add_file_ending(outfiles[0] if outfiles else None)
-
-        self.alignment_parser.bp.close_document()
 
         if outfiles:
             for outfile in outfiles:

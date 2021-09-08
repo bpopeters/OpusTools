@@ -1,14 +1,4 @@
-from .block_parser import BlockParser, BlockParserError
-
-class AlignmentParserError(Exception):
-
-    def __init__(self, message):
-        """Raise error when alignment parsing fails.
-
-        Arguments:
-        message -- Error message to be printed
-        """
-        self.message = message
+import xml.etree.ElementTree as ET
 
 def range_filter_type(src_range, trg_range):
     def range_filter(*args):
@@ -74,40 +64,34 @@ class AlignmentParser:
                  attr=None, thres=None, leave_non_alignments_out=False):
         """Parse xces alignment files and output sentence ids."""
 
-        self.bp = BlockParser(alignment_file)
+        self._lazy_links = ET.iterparse(alignment_file)
         self.filters = _build_filters(
             src_trg_range, attr, thres, leave_non_alignments_out
         )
 
     def filter_link(self, link):
-        attr = link.attributes
+        attr = link.attrib
         src_id, trg_id = attr['xtargets'].split(';')
         return any(filt(src_id.split(), trg_id.split(), attr) for filt in self.filters)
 
-    def collect_links(self):
+    def iterate_links(self):
         """Collect links for a linkGrp"""
 
         attrs = []
         src_id_set, trg_id_set = set(), set()
         src_doc, trg_doc = None, None
-
-        try:
-            blocks = self.bp.get_complete_blocks()
-            while blocks:
-                for block in blocks:
-                    if block.name == 'link':
-                        if not self.filter_link(block):
-                            src_id, trg_id = block.attributes['xtargets'].split(";")
-                            src_id_set.update(src_id.split())
-                            trg_id_set.update(trg_id.split())
-                            attrs.append(block.attributes)
-                    elif block.name == 'linkGrp':
-                        src_doc = block.attributes['fromDoc']
-                        trg_doc = block.attributes['toDoc']
-                        return attrs, src_id_set, trg_id_set, src_doc, trg_doc
-                blocks = self.bp.get_complete_blocks()
-        except BlockParserError as error:
-            raise AlignmentParserError(
-                'Error while parsing alignment file: {error}'.format(error=error.args[0]))
-
-        return attrs, src_id_set, trg_id_set, src_doc, trg_doc
+        # weird to have a lazy iterator as an instance attribute
+        for event, elem in self._lazy_links:
+            if elem.tag == "link":
+                if not self.filter_link(elem):
+                    src_id, trg_id = elem.attrib['xtargets'].split(";")
+                    src_id_set.update(src_id.split())
+                    trg_id_set.update(trg_id.split())
+                    attrs.append(elem.attrib)
+            elif elem.tag == 'linkGrp':
+                src_doc = elem.attrib['fromDoc']
+                trg_doc = elem.attrib['toDoc']
+                yield attrs, src_id_set, trg_id_set, src_doc, trg_doc
+                attrs = []
+                src_id_set, trg_id_set = set(), set()
+                src_doc, trg_doc = None, None
