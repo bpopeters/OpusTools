@@ -4,7 +4,7 @@ import sys
 import html
 
 from .parse.alignment_parser import AlignmentParser
-from .parse.sentence_parser import SentenceParser, SentenceParserError
+from .parse.sentence_parser import SentenceParser
 from .util import file_open
 from .formatting import check_lang_conf_type
 from .opus_file_handler import OpusFileHandler
@@ -255,6 +255,7 @@ class OpusRead:
                 src_outf.write(src_result)
                 trg_outf.write(trg_result)
             else:
+                # both src_result and trg_result end in \n
                 outf.write(src_result[:-1] + moses_del + trg_result)
 
         elif self._write_mode == "links":
@@ -352,6 +353,12 @@ class OpusRead:
             outf.write('</cesAlign>\n')
 
     def _format_pair(self, link_a, src_parser, trg_parser):
+        """
+        The link pairs the IDs from the src and trg corpora.
+        The parsers are glorified dictionaries at this point.
+        This method looks up the IDs from the link in the src and trg parsers.
+        """
+        # why put this check inside the method?
         if not self.not_links_or_check_lang:
             return None, None
 
@@ -365,6 +372,7 @@ class OpusRead:
         if self.check_filters(src_attrs, trg_attrs):
             return -1, -1
 
+        # it's also weird to put this here
         if self._write_mode == "links":
             return None, None
 
@@ -445,35 +453,33 @@ class OpusRead:
                     print('\n' + e.args[0] + '\nContinuing from next sentence file pair.')
                     continue
 
-                try:
-                    src_annot, trg_annot = self.annot
-                    src_parser = SentenceParser(
-                        src_doc,
-                        preprocessing=self.preprocess,
-                        anno_attrs=src_annot,
-                        preserve=self.preserve,
-                        delimiter=self.annot_delimiter
-                    )
-                    src_parser.store_sentences(src_set)
-                    trg_parser = SentenceParser(
-                        trg_doc,
-                        preprocessing=self.preprocess,
-                        anno_attrs=trg_annot,
-                        preserve=self.preserve,
-                        delimiter=self.annot_delimiter
-                    )
-                    trg_parser.store_sentences(trg_set)
-                except SentenceParserError as e:
-                    print('\n' + e.message + '\nContinuing from next sentence file pair.')
-                    continue
+                src_annot, trg_annot = self.annot
+                src_parser = SentenceParser(
+                    src_doc,
+                    preprocessing=self.preprocess,
+                    anno_attrs=src_annot,
+                    preserve=self.preserve,
+                    delimiter=self.annot_delimiter
+                )
+                src_parser.store_sentences(src_set)
+                trg_parser = SentenceParser(
+                    trg_doc,
+                    preprocessing=self.preprocess,
+                    anno_attrs=trg_annot,
+                    preserve=self.preserve,
+                    delimiter=self.annot_delimiter
+                )
+                trg_parser.store_sentences(trg_set)
 
             self._add_doc_names(src_doc_name, trg_doc_name, outfiles)
 
             # write each link
             for link_a in link_attrs:
+                # why put this check inside the method?
                 src_result, trg_result = self._format_pair(
                     link_a, src_parser, trg_parser
                 )
+                # what do you do if they're None?
 
                 if src_result == -1:
                     continue

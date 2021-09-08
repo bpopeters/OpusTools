@@ -1,118 +1,23 @@
-from .block_parser import BlockParser, BlockParserError
-
-class SentenceParserError(Exception):
-
-    def __init__(self, message):
-        """Raise error when sentence parsing fails.
-
-        Arguments:
-        message -- Error message to be printed
-        """
-        self.message = message
-
-def parse_type(preprocess, preserve, get_annotations):
-    """Select function to be used for parsing"""
-
-    def parse_s(block, sentence, sentences):
-        sid = block.attributes['id']
-        sentence = ' '.join(sentence)
-        sentences[sid] = (sentence, block.attributes)
-        sentence = []
-        return sentence
-
-    def parse_s_raw(block, sentence, sentences):
-        sid = block.attributes['id']
-        sentence.append(block.data.strip())
-        sentence = ' '.join(sentence)
-        sentences[sid] = (sentence, block.attributes)
-        sentence = []
-        return sentence
-
-    def parse_w(bp, block, sentence, id_set):
-        s_parent = bp.tag_in_parents('s', block)
-        if s_parent and s_parent.attributes['id'] in id_set:
-            data = block.data.strip()
-            sentence.append(data)
-        return sentence
-
-    def parse_w_parsed(bp, block, sentence, id_set):
-        s_parent = bp.tag_in_parents('s', block)
-        if s_parent and s_parent.attributes['id'] in id_set:
-            data = block.data.strip()
-            data += get_annotations(block)
-            sentence.append(data)
-        return sentence
-
-    def parse_time(bp, block, sentence, id_set):
-        s_parent = bp.tag_in_parents('s', block)
-        if s_parent and s_parent.attributes['id'] in id_set:
-            sentence.append(block.get_raw_tag())
-        return sentence
+import xml.etree.ElementTree as ET
 
 
-    def xml(bp, block, sentence, sentences, id_set):
-        if block.name == 's' and block.attributes['id'] in id_set:
-            sentence = parse_s(block, sentence, sentences)
-        elif block.name == 'w':
-            sentence = parse_w(bp, block, sentence, id_set)
-        return sentence
+def find_iterparse_groups(lines, tag):
+    sentence_buffer = []
+    for event, elem in lines:
+        if elem.tag == tag and event == "start":
+            sentence_buffer = []
 
-    def raw(bp, block, sentence, sentences, id_set):
-        if block.name == 's' and block.attributes['id'] in id_set:
-            sentence = parse_s_raw(block, sentence, sentences)
-        return sentence
+        # append to the buffer
+        sentence_buffer.append((event, elem))
 
-    def parsed(bp, block, sentence, sentences, id_set):
-        if block.name == 's' and block.attributes['id'] in id_set:
-            sentence = parse_s(block, sentence, sentences)
-        elif block.name == 'w':
-            sentence = parse_w_parsed(bp, block, sentence, id_set)
-        return sentence
-
-    def xml_preserve(bp, block, sentence, sentences, id_set):
-        if block.name == 's' and block.attributes['id'] in id_set:
-            sentence = parse_s(block, sentence, sentences)
-        elif block.name == 'w':
-            sentence = parse_w(bp, block, sentence, id_set)
-        elif block.name == 'time':
-            sentence = parse_time(bp, block, sentence, id_set)
-        return sentence
-
-    def raw_preserve(bp, block, sentence, sentences, id_set):
-        if block.name == 's' and block.attributes['id'] in id_set:
-            sentence = parse_s_raw(block, sentence, sentences)
-        elif block.name == 'time':
-            sentence = parse_time(bp, block, sentence, id_set)
-        return sentence
-
-    def parsed_preserve(bp, block, sentence, sentences, id_set):
-        if block.name == 's' and block.attributes['id'] in id_set:
-            sentence = parse_s(block, sentence, sentences)
-        elif block.name == 'w':
-            sentence = parse_w_parsed(bp, block, sentence, id_set)
-        elif block.name == 'time':
-            sentence = parse_time(bp, block, sentence, id_set)
-        return sentence
-
-    if preserve:
-        if preprocess == 'xml':
-            return xml_preserve
-        if preprocess == 'raw':
-            return raw_preserve
-        if preprocess == 'parsed':
-            return parsed_preserve
-    else:
-        if preprocess == 'xml':
-            return xml
-        if preprocess == 'raw':
-            return raw
-        if preprocess == 'parsed':
-            return parsed
+        if elem.tag == tag and event == "end":
+            yield sentence_buffer
 
 
 class SentenceParser:
 
-    def __init__(self, document, preprocessing=None, anno_attrs=['all_attrs'],
+    def __init__(
+            self, document, preprocessing=None, anno_attrs=('all_attrs',),
             delimiter='|', preserve=None):
         """Parse xml sentence files that have sentence ids in any order.
 
@@ -128,51 +33,46 @@ class SentenceParser:
         self.delimiter = delimiter
         self.anno_attrs = anno_attrs
 
-        self.parse_block = parse_type(preprocessing, preserve, self.get_annotations)
+        self.preserve = preserve  # do something about this
 
         self.sentences = {}
         self.done = False
 
-        self.data_tag = 'w'
-        if preprocessing == 'raw':
-            self.data_tag = 's'
+        self.data_tag = "s" if preprocessing == "raw" else "w"
 
     def store_sentences(self, id_set):
-        """Read document and store sentences in a dictionary."""
-        bp = BlockParser(self.document, data_tag=self.data_tag)
-        sentence = []
-        sid = None
-        try:
-            blocks = bp.get_complete_blocks()
-            while blocks:
-                for block in blocks:
-                    sentence = self.parse_block(
-                            bp, block, sentence, self.sentences, id_set)
-                blocks = bp.get_complete_blocks()
-            bp.close_document()
-        except BlockParserError as e:
-            raise SentenceParserError(
-                'Error while parsing sentence file: {error}'.format(error=e.args[0]))
+        """
+        pre: self.sentences is empty, self.document ready to read
+        post: self.sentences is filled with stuff
+        """
+        sentence_tag = "s"  # may need other things for more advanced cases
+        lazy_xml = ET.iterparse(self.document, events=["start", "end"])
+        sentences = find_iterparse_groups(lazy_xml, sentence_tag)
+        for sent_group in sentences:
+            tokens = [elem.text for (event, elem) in sent_group
+                      if event == "end" and elem.tag == "w"]
+            sentence = ' '.join(tokens)
+            sent_attrib = sent_group[-1][1].attrib
+            sid = sent_attrib["id"]
+            if sid in id_set:
+                self.sentences[sid] = sentence, sent_attrib
 
     def get_annotations(self, block):
         annotations = ''
         if self.anno_attrs[0] == 'all_attrs':
             attributes = list(block.attributes.keys())
             attributes.sort()
-            for a in attributes:
-                annotations += self.delimiter + block.attributes[a]
+            for attr in attributes:
+                annotations += self.delimiter + block.attributes[attr]
         else:
-            for a in self.anno_attrs:
-                if a in block.attributes.keys():
-                    annotations += self.delimiter + block.attributes[a]
+            for attr in self.anno_attrs:
+                if attr in block.attributes.keys():
+                    annotations += self.delimiter + block.attributes[attr]
         return annotations
 
     def get_sentence(self, sid):
         """Return a sentence based on given sentence id."""
-        if sid in self.sentences.keys():
-            return self.sentences[sid]
-        else:
-            return '', {}
+        return self.sentences.get(sid, ('', {}))
 
     def read_sentence(self, ids):
         """Return a sequence of sentences based on given sentence ids."""
@@ -180,11 +80,10 @@ class SentenceParser:
             return '', []
 
         sentence = []
-        attrsList = []
+        attrs_list = []
         for sid in ids:
-            newSentence, attrs = self.get_sentence(sid)
-            sentence.append(newSentence)
-            attrsList.append(attrs)
+            new_sentence, attrs = self.get_sentence(sid)
+            sentence.append(new_sentence)
+            attrs_list.append(attrs)
 
-        return sentence, attrsList
-
+        return sentence, attrs_list
