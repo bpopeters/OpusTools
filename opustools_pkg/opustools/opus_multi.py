@@ -2,31 +2,13 @@ import os
 import re
 import sys
 import html
+from itertools import combinations
 
 from .parse.alignment_parser import AlignmentParser
 from .parse.sentence_parser import SentenceParser
 from .util import file_open
 from .formatting import check_lang_conf_type
 from .opus_file_handler import OpusFileHandler
-
-def skip_regex_type(n, N):
-    "Select function to skip document names"
-
-    def get_re(doc_name):
-        return not re.search(n, doc_name)
-
-    def skip_re(doc_name):
-        return re.search(N, doc_name)
-
-    def nothing(doc_name):
-        return False
-
-    if n:
-        return get_re
-    if N:
-        return skip_re
-    return nothing
-
 
 def _find_zip(download_dir, directory, root_directory, release, preprocess, language):
     dl_zip = os.path.join(
@@ -51,13 +33,10 @@ class OpusRead:
     def __init__(
             self,
             directory=None,
-            source=None,
-            target=None,
+            languages=None,
             release='latest',
             preprocess='xml',
             maximum=-1,
-            src_range='all',
-            tgt_range='all',
             attribute=None,
             threshold=None,
             leave_non_alignments_out=False,
@@ -65,9 +44,8 @@ class OpusRead:
             write_mode='normal',
             print_file_names=False,
             root_directory='/projappl/nlpl/data/OPUS',
-            alignment_file=-1,
-            source_zip=None,
-            target_zip=None,
+            alignment_files=tuple(),
+            zips=tuple(),
             change_moses_delimiter='\t',
             print_annotations=False,
             source_annotations=('pos', 'lem'),
@@ -80,9 +58,6 @@ class OpusRead:
             write_ids=None,
             suppress_prompts=False,
             download_dir='.',
-            preserve_inline_tags=False,
-            n=None,
-            N=None,
             verbose=False):
         """Read xces alignment files and xml sentence files and output in
         desired format.
@@ -131,59 +106,33 @@ class OpusRead:
         """
         self.verbose = verbose
 
+        self.languages = sorted(languages)
+        language_pairs = list(combinations(self.languages, 2))  # tuples
+
+        '''
         self.fromto = [source, target]
         sorted_langs = sorted([source, target])
         assert self.fromto == sorted_langs, \
             "Just stay in alphabetical order for now"
-
-        switch_langs = self.fromto != sorted_langs
-        self._switch_langs = switch_langs
-
-        '''
-        if switch_langs:
-            src_range, tgt_range = tgt_range, src_range
-            src_cld2, trg_cld2 = trg_cld2, src_cld2
-            src_langid, trg_langid = trg_langid, src_langid
-            source_zip, target_zip = target_zip, source_zip
-            # still thinking what to do with the last one:
-            temp = source_annotations.copy()
-            source_annotations = target_annotations.copy()
-            target_annotations = temp.copy()
         '''
 
         lang_filters = [src_cld2, src_langid, trg_cld2, trg_langid]
 
-        if alignment_file == -1:
-            alignment = os.path.join(
-                root_directory,
-                directory,
-                release,
-                'xml',
-                "-".join(sorted_langs) + '.xml.gz'
-            )
-        else:
-            alignment = alignment_file
-
         # "source" currently means first alphabetically, which is bad(?)
         # source should mean the source, not the first alphabetically
-        if not source_zip:
-            source_zip = _find_zip(
-                download_dir,
-                directory,
-                root_directory,
-                release,
-                preprocess,
-                source
-            )
-        if not target_zip:
-            target_zip = _find_zip(
-                download_dir,
-                directory,
-                root_directory,
-                release,
-                preprocess,
-                target
-            )
+        # do zips
+        if not zips:
+            zips = []
+            for language in languages:
+                language_zip = _find_zip(
+                    download_dir,
+                    directory,
+                    root_directory,
+                    release,
+                    preprocess,
+                    language
+                )
+                zips.append(language_zip)
 
         self.write_ids = write_ids
 
@@ -196,12 +145,10 @@ class OpusRead:
         self.maximum = maximum
         self.preprocess = 'parsed' if print_annotations else preprocess
 
-        self.preserve = preserve_inline_tags
+        self.preserve = False
 
         self.annot = source_annotations, target_annotations
         self.annot_delimiter = change_annotation_delimiter
-
-        self.skip_doc = skip_regex_type(n, N)
 
         self._write_mode = write_mode
         self._print_file_names = print_file_names
@@ -211,6 +158,7 @@ class OpusRead:
 
         self.check_filters, check_lang = check_lang_conf_type(lang_filters)
 
+        # I don't like this and I want to get rid of it
         self.of_handler = OpusFileHandler(
             download_dir,
             source_zip,
@@ -223,13 +171,37 @@ class OpusRead:
             suppress_prompts
         )
 
-        alignment = self.of_handler.open_alignment_file(alignment)
-        self.alignment_parser = AlignmentParser(
-            alignment,
-            (src_range, tgt_range),
-            attribute,
-            threshold,
-            leave_non_alignments_out
+        # opening a file in the constructor for some reason
+        if not alignment_files:
+            # construct them, one for each pair
+            alignment_paths = dict()
+            for language_pair in language_pairs:
+                align_path = os.path.join(
+                    root_directory,
+                    directory,
+                    release,
+                    'xml',
+                    "-".join(align_path) + '.xml.gz'
+                )
+                alignment_paths[language_pair] = align_path
+        else:
+            assert len(alignment_files) == len(language_pairs)
+            alignment_paths = dict(zip(language_pairs, alignment_files))
+
+        # now, make an alignment parser for each pair
+        # is this actually the right way to do it?
+        # for each align_path, there is a set of links between two languages.
+        # You can perhaps build an adjacency graph.
+        # keys are (language, id) pairs, values are a set of aligned
+        # (language, id) pairs.
+        self.alignment_parsers = dict()
+        for pair, align_path in alignment_paths.items():
+            self.alignment_parsers[pair] = AlignmentParser(
+                self.of_handler.open_alignment_file(align_path),
+                ("all", "all"),
+                attribute,
+                threshold,
+                leave_non_alignments_out
         )
 
         self.not_links_or_check_lang = write_mode != "links" or check_lang
@@ -427,14 +399,13 @@ class OpusRead:
         else:
             id_file = None  # hmm
 
-        src_parser = None
-        trg_parser = None
-
         total = 0
         stop = False
 
+        # the think here: we will have several link files, not one
         link_groups = self.alignment_parser.iterate_links()
         for link_group in link_groups:
+            # ok, this needs to change
             link_attrs, src_set, trg_set, src_doc_name, trg_doc_name = link_group
 
             if not src_doc_name:
@@ -442,9 +413,8 @@ class OpusRead:
 
             # it seems wasteful to load the links before the filter: is there
             # any way to detect the files first?
-            if self.skip_doc(src_doc_name):
-                continue
 
+            parsers = []
             if self.not_links_or_check_lang:
                 try:
                     src_doc = self.of_handler.open_sentence_file(src_doc_name, 'src')
@@ -453,20 +423,20 @@ class OpusRead:
                     print('\n' + e.args[0] + '\nContinuing from next sentence file pair.')
                     continue
 
-                src_annot, trg_annot = self.annot
-                src_parser = SentenceParser(
+                # for each language, do this
+                parser = SentenceParser(
                     src_doc,
                     preprocessing=self.preprocess,
-                    anno_attrs=src_annot,
-                    preserve=self.preserve,
+                    anno_attrs=("pos", "lem"),
+                    preserve=False
                     delimiter=self.annot_delimiter
                 )
-                src_parser.store_sentences(src_set)
+                parser.store_sentences(src_set)  # where is the set from?
                 trg_parser = SentenceParser(
                     trg_doc,
                     preprocessing=self.preprocess,
                     anno_attrs=trg_annot,
-                    preserve=self.preserve,
+                    preserve=False
                     delimiter=self.annot_delimiter
                 )
                 trg_parser.store_sentences(trg_set)

@@ -9,12 +9,8 @@ parser = argparse.ArgumentParser(prog='opus_read',
 parser.add_argument('-d', '--directory', help='Corpus name',
     metavar='corpus_name',
     required=True)
-parser.add_argument('-s', '--source', help='Source language',
-    metavar='langid',
-    required=True)
-parser.add_argument('-t', '--target', help='Target language',
-    metavar='langid',
-    required=True)
+parser.add_argument('-s', '--languages', help='Languages',
+                    required=True, nargs="+")
 parser.add_argument('-r', '--release', help='Release (default=latest)',
     metavar='version',
     default='latest')
@@ -58,12 +54,7 @@ parser.add_argument('-rd', '--root_directory',
 parser.add_argument('-af', '--alignment_file',
     help='Use given alignment file',
     metavar='path_to_file', default=-1)
-parser.add_argument('-sz', '--source_zip',
-    help='Use given source zip file',
-    metavar='path_to_zip')
-parser.add_argument('-tz', '--target_zip',
-    help='Use given target zip file',
-    metavar='path_to_zip')
+parser.add_argument('-z', '--zips', help='Paths to zip files for all languages')
 parser.add_argument('-cm', '--change_moses_delimiter',
     help='Change moses delimiter (default=tab)',
     metavar='delimiter',
@@ -89,26 +80,6 @@ parser.add_argument('-ca', '--change_annotation_delimiter',
     help='Change annotation delimiter (default=|)',
     metavar='delimiter',
     default='|')
-parser.add_argument('--src_cld2',
-    help='Filter source sentences by their cld2 language id labels '
-        'and confidence score, e.g. en 0.9',
-    metavar=('lang_id', 'score'),
-    nargs=2)
-parser.add_argument('--trg_cld2',
-    help='Filter target sentences by their cld2 language id labels '
-        'and confidence score, e.g. en 0.9',
-    metavar=('lang_id', 'score'),
-    nargs=2)
-parser.add_argument('--src_langid',
-    help='Filter source sentences by their langid.py language id '
-        'labels and confidence score, e.g. en 0.9',
-    metavar=('lang_id', 'score'),
-    nargs=2)
-parser.add_argument('--trg_langid',
-    help='Filter target sentences by their langid.py language id '
-        'labels and confidence score, e.g. en 0.9',
-    metavar=('lang_id', 'score'),
-    nargs=2)
 parser.add_argument('-id', '--write_ids',
     metavar='file_name',
     help='Write sentence ids to a file.')
